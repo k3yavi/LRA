@@ -3,7 +3,7 @@
 Created on ........ Tue Nov 17 20:26:48 2015
 Last modified on .. Thu Nov 19 23:18:39 2015
 
-Hierarchical and kmekclusters clustering implementation for RNA/DNA reads.
+Hierarchical and kmeans clustering implementation for RNA/DNA reads.
 
 @author: Caleb Andrade
 """
