@@ -8,7 +8,6 @@ Hierarchical and kmekclusters clustering implementation for RNA/DNA reads.
 @author: Caleb Andrade
 """
 
-from RNAClustering import readFastq
 from Cluster import Cluster
 import time
 import random
@@ -16,6 +15,32 @@ import math
 
 # DIM = 1 manhattan metric; DIM = 2 euclidean metric
 DIM = 1
+
+
+def readFastq(filename):
+    """
+    Parse read and quality strings from a FASTQ file with sequencing reads.
+    @author: Ben Langmead & Jacob Pritt.
+    
+    Input: file path
+    Output: A list of reads, the list of qualities
+    """
+    sequences = []
+    qualities = []
+    
+    with open(filename) as fh:
+        while True:
+            fh.readline() # skip name line
+            seq = fh.readline().rstrip() #read base sequence
+            fh.readline() # skip placeholder line
+            qual = fh.readline().rstrip() # base quality line
+            if len(seq) == 0:
+                break
+            sequences.append(seq)
+            qualities.append(qual)
+            
+    return sequences, qualities
+    
 
 def closestPair(cluster_list):
     """
