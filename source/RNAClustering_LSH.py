@@ -74,7 +74,38 @@ def hashLSH(kmers, ran_numbers):
             hashMap[temp] = [kmer]
     return hashMap
 
-
+def compress(bucket):
+    """
+    Take the average of reads in bucket.
+    
+    Input: Bucket of raw reads as strings.
+    Output: Average read as string.
+    """
+    acgt = {0:'A', 1:'C', 2:'G', 3:'T', 4:'T'}
+    sumVector = 4*len(bucket[0])*[0]
+    average =''    
+    
+    for read in bucket:
+        temp = unaryMap(read)
+        for idx in range(len(temp)):
+            sumVector[idx] += int(temp[idx])
+    
+    best = 0
+    index = 0
+    count = 0
+    
+    for idx in range(len(sumVector)):
+        if sumVector[idx] > best:
+            index = idx
+            best = sumVector[idx]
+        count += 1
+        if count == 4:
+            average += acgt[index%4]
+            best = 0
+            index = 0
+            count = 0
+            
+    return average
 #******************************************************************************
 # TESTING ZONE
 #******************************************************************************
@@ -241,3 +272,25 @@ def printReads(cluster_list, reads):
 #printReads(z, read1)
 #printReads(u, read1)
 #printReads(w[0], w[1])
+
+def main5():
+    """
+    Testing compress.
+    """
+    bucket = ['CCTAACANTAACCCTAACCCCTAACCCTAACC',
+              'CCTAACCCTAAACCCTAAACCCTAAACCCTAA',
+              'CCTAACCCTAAACCTAACCTCTCACCCTAACC',
+              'CCTAACCCCTAACCCTAACCCCTAACCCCTNA',
+              'CCTAACCCTAACCCTAAACCCTAAACCCTAAA',
+              'CCTAACCCTAACCCTTAACCCTTAANCCTTAA',
+              'CCTAACCCTAACCCTAACANCCCTAACCCTAA',
+              'CCTAACCCTAACCCTAACCCTAACCACCCTAA',
+              'CTTAACCCTTAANCCTTAACCCTTAACCCTAA',
+              'CCTAACCCTAACCCTAACCCTTAACCCTTAAN',
+              'CCTAACCCTAACCCTAACCCTTAACCCTAACN',
+              'CCTAACCCTNACCCTAACCCTTAACCCTAACC',
+              'CCTAACCCTTACCCTTAACCCTTAACCCTNAA']
+     
+    print compress(bucket)
+        
+main5()
