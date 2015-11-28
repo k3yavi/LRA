@@ -40,6 +40,7 @@ def readFastq(filename):
             
     return sequences, qualities
 
+
 def closestPair(cluster_list):
     """
     Compute the closest pair from a list of clusters
@@ -67,7 +68,7 @@ def hierClustering(cluster_list, num_clusters):
     Compute a hierarchical clustering of a set of clusters.
     Note: the function may mutate cluster_list.
     
-    Input: List of clusters, integer number of clusters, closest pair function.
+    Input: List of clusters, integer number of clusters.
     Output: List of clusters whose length is num_clusters
     """
     while len(cluster_list) > num_clusters:
@@ -88,7 +89,7 @@ def autHierClustering(cluster_list, threshold):
     Compute a hierarchical clustering of a set of clusters.
     Note: number of clusters depend on a specified error threshold.
     
-    Input: List of clusters, closest pair function.
+    Input: List of clusters, error threshold.
     Output: List of clusters.
     """
     new_cluster_list = []
@@ -123,7 +124,7 @@ def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True)
     Compute the k-means clustering of a set of clusters (RNA/DNA reads)
     Note: the function may not mutate cluster_list
     
-    Input: List of clusters, k number of clusters, iterations, select randomly or by size?
+    Input: List of clusters, k number of clusters, iterations, select randomly initial clusters?
     Output: List of clusters whose length is num_clusters
     """
     kclusters = [] # this list to store k clusters to compare with (non-mutable)
