@@ -65,7 +65,7 @@ def statsVectors(reads):
     return stats_vectors
     
 
-def distance(vector_a, vector_b, dim = 1):
+def distance(vector_a, vector_b, dim = DIM):
         """
         Compute Minkowski's distance between two vectors.
         Note: dim = 1, then manhattan distance; dim = 2 then euclidean.
@@ -180,7 +180,7 @@ class Cluster(object):
         return list(self.sum_stats_vectors)
         
         
-    def distance(self, other_cluster, dim = 1):
+    def distance(self, other_cluster, dim = DIM):
         """
         Compute Minkowski's distance between self's and other cluster's 
         avg_stats_vectors.
@@ -250,7 +250,7 @@ class Cluster(object):
         
         return True
         
-    def clusterError(self, dim = 1):
+    def clusterError(self, dim = DIM):
         """
         Standard deviation of stats vectors from average stats vector.
         """

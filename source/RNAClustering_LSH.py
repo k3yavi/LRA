@@ -1,36 +1,14 @@
 # -*- coding: utf-8 -*-
 """
+Created on ......... Wed Nov 25 23:35:58 2015
+Last modified on ... Fri Nov 27 15:53:06 2015
+
 Locality-Sensitive Hashing applied to cluster RNA/DNA kmers.
-Created on Wed Nov 25 23:35:58 2015
+
 @author: Caleb Andrade.
 """
 
-import random
-
-def readFastq(filename):
-    """
-    Parse read and quality strings from a FASTQ file with sequencing reads.
-    @author: Ben Langmead & Jacob Pritt.
-    
-    Input: file path
-    Output: A list of reads, the list of qualities
-    """
-    sequences = []
-    qualities = []
-    
-    with open(filename) as fh:
-        while True:
-            fh.readline() # skip name line
-            seq = fh.readline().rstrip() #read base sequence
-            fh.readline() # skip placeholder line
-            qual = fh.readline().rstrip() # base quality line
-            if len(seq) == 0:
-                break
-            sequences.append(seq)
-            qualities.append(qual)
-            
-    return sequences, qualities
-    
+from HierarchicalKmeansCluster import *
 
 def kmerHashMap(reads, k):
     """
@@ -56,10 +34,10 @@ def kmerHashMap(reads, k):
 
 def unaryMap(kmer):
     """
-    Map kmer to a unary representation.
+    Map kmer/read to a unary representation.
     
-    Input: kmer.
-    Output: concatenation of unary maps of kmer's bases.
+    Input: kmer/read.
+    Output: concatenation of unary maps of kmer/read's bases.
     """
     bit_vector = ''
     for base in kmer:
@@ -82,14 +60,14 @@ def simHash(bit_vector, ran_numbers):
 
 def hashLSH(kmers, ran_numbers):
     """
-    Builds the similarity hash table according to the given indices.
+    Build the similarity hash table according to the given indices.
     
-    Input: set of kmers, list of random integers.
-    Output: kmer similarity hash map.
+    Input: set of kmers/reads (ID, 'ACCTGCA...'), list of random integers.
+    Output: kmer/read similarity hash map.
     """
     hashMap = {}
     for kmer in kmers:
-        temp = simHash(unaryMap(kmer), ran_numbers)
+        temp = simHash(unaryMap(kmer[1]), ran_numbers)
         if hashMap.has_key(temp):
             hashMap[temp].append(kmer)
         else:
@@ -107,72 +85,154 @@ read1 = readFastq('ERR037900_1.first1000.fastq')[0]
 read2 = readFastq('ERR266411_1.for_asm.fastq')[0]
 
 
-def main1(k):
+def main1(list_reads, bucket_t, error_t, kmers = True):
     """
-    Testing LSH for 32-mers. Hash is a concatenation of random primitive hashes.
+    Test LSH for reads/kmers. Hash = concatenation of random primitive hashes.
+    For kmers the number of primitive hashes is set to 32, 4 cycles of hashing.
+    For reads the number of primitive hashes is set to 50, 8 cycles of hashing.
     
-    Input: number of primitive hashes (best results ~ k =32).
+    Input: list of reads/kmers, kmers or reads?
+    Output: list of clusters, list of reads not clustered.
     """
-    kmerHash1 = kmerHashMap(read1, 32) # kmers-reads hash map
-    kmers = kmerHash1.keys()
-    # each kmer maps to a 128-bit vector, so we need a 128-long random numbers list
-    ran_numbers = sorted(random.sample([i for i in range(128)], k))
-    result = hashLSH(kmers, ran_numbers) # apply LSH hash
-    
-    print "\nThose buckets with more than 4 clustered kmers: \n"
-    for bucket in result.values():
-        if len(bucket) > 4:
-            for kmer in bucket:
-                print kmer
-            print
-    
-    print "\nSize of reads data set: ", len(read1)
-    print "\nInitial count of different kmers: ", len(kmers)
-    print "\nNumber of kmer clusters: ", len(result)
-    print "\nIndices of primitive hashes: \n\n", ran_numbers
-
-
-def main2(k, iterations):
-    """
-    Testing LSH for reads. Hash is a concatenation of random primitive hashes.
-    
-    Input: number of primitive hashes (best results ~ k = 25).
-    """
+    print "\n******************************************************************"
+    print "\n        F I R S T  S T A G E: LOCALITY-SENSITIVE HASHING "
+    if kmers:
+        k = 16 # are we analyzing kmers?
+    else:
+        k = 25 # are we analyzing reads?
     # initialization
     count = 0
-    temp = []
-    reads = read1
+    reads = [(idx, list_reads[idx]) for idx in range(len(list_reads))]
     clusters = []
     reads_clustered = 0
-    # hash, filter and rehash those isolated reads, loop # iterations.
-    while count < iterations:
-        ran_numbers = sorted(random.sample([i for i in range(400)], k))
-        result = hashLSH(reads, ran_numbers)
-        
-        for bucket in result.values():
-            if len(bucket) > 4:
-                print
-                clusters.append(bucket)
-                reads_clustered += len(bucket)
-                for kmer in bucket:
-                    print kmer
+    bit_length = 4*len(list_reads[0]) # length of the read/kmer as a bit-vector
+    indices = set([i for i in range(bit_length)]) # indices to sample for primitive hashes
+    
+    tic = time.clock()
+    # hash, filter and rehash those isolated reads 
+    while count < bit_length / k: # loop to re-apply LSH 4 or 8 cycles of hashing.
+        ran_numbers = set(random.sample(indices, k)) # sample indices
+        indices = indices.difference(ran_numbers) # substract sampled indices
+        result = hashLSH(reads, ran_numbers) 
+        temp = []
+        for bucket in result.values(): # filter unclustered reads
+            if len(bucket) > bucket_t:
+                cluster = Cluster(bucket)
+                error = cluster.clusterError()
+                if error < error_t:
+                    clusters.append(Cluster(bucket))
+                    reads_clustered += len(bucket)
+#                    print "\nCluster error: ", error
+#                    for item in bucket:
+#                        print item[1]
+                else:
+                    temp += bucket
             else:
                 temp += bucket                
-        reads = list(temp)
-        temp = []
+        reads = temp
         count += 1
+    toc = time.clock()
     
-    print "\nSize of reads data set: ", len(read1)
-    print "\nNumber of read clusters: ", len(clusters)
-    print "\nTotal reads clustered: ", reads_clustered
+    print "\nSize of batch of reads: ", len(list_reads)
+    print "Number of clusters:     ", len(clusters)
+    print "Total reads clustered:  ", reads_clustered
+    print "\nRunning time:           ", round(toc-tic, 2), " s"
+    
+    return clusters, reads
+
+
+def main2(list_reads, bucket_t, error_t, stage3 = False):
+    """
+    Test a two stage method for clustering reads: Apply first LSH to 
+    generate K initial clusters, and the rest of reads not clustered. Then 
+    apply kmeans clustering, where iterations = log(n).
+    
+    Input: list of reads.
+    Output: list of cluster objects.
+    """
+    # first stage of clustering
+    results = main1(list_reads, bucket_t, error_t, False)
+
+    print "\n        S E C O N D  S T A G E: KMEANS-CLUSTERING "
+    tic = time.clock()
+    not_clustered = [Cluster([read]) for read in results[1]]
+    # initializing Cluster objects
+    cluster_list = results[0] + not_clustered
+    # seting the number of iterations as log(n)
+    iterations = 1 + int(math.log(len(list_reads), 2))
+    results2 = kmeansClustering(cluster_list, len(results[0]), iterations, False)
+    toc = time.clock()
+    printResults(results2, list_reads)
+    print "Number of clusters:     ", len(results2)
+    print "\nRunning time:           ", round(toc-tic, 2), " s"
+    
+    if not stage3:
+        return results2
+        
+    print "\n        T H I R D  S T A G E: HIERARCHICAL-CLUSTERING"
+    tic = time.clock()
+    results3 = autHierClustering(results2, 20)
+    printResults(results3, list_reads)
+    toc = time.clock()
+    print "Number of clusters:     ", len(results3)
+    print "\nRunning time:           ", round(toc-tic, 2), " s"
+    
+    return results3    
     
 
-#main1(32)
-
-#main2(25, 25)
-
+def main3(k, list_reads, bucket_t, error_t):
+    """
+    Test a two stage method for clustering reads: Apply first kmeans
+    with k initial clusters, then apply automatic hierarchical
+    clustering with a threshold = 20
+    
+    Input: list of reads.
+    Output: list of cluster objects.
+    """
+    results = kmeans(1000, 50)
+    
+    print "\n        S E C O N D  S T A G E: HIERARCHICAL-CLUSTERING"
+    tic = time.clock()
+    results2 = autHierClustering(results, 20)
+    printResults(results2, list_reads)
+    toc = time.clock()
+    print "Number of clusters:     ", len(results2)
+    print "\nRunning time:           ", round(toc-tic, 2), " s"
+    
+    return results2
     
     
+def main4(kmers, bucket_t):
+    """
+    Compute an LSH hash for a list of kmers, using 4 cycles of 32 primitive 
+    hash functions, sampling every time 32 indices without replacement for
+    128-bit vectors.
+    
+    Input: List of kmers.
+    Output: List of clusters of kmers. Those clusters with less than a bucket 
+    threshold of kmers are ignored.
+    """
+    kmerHash1 = kmerHashMap(kmers, 32) # kmers-reads hash map
+    kmers = kmerHash1.keys()
+    main1(kmers, bucket_t, 20)
+    print "\nKMER APPROXIMATE CLUSTERING VIA LSH (PRIMITIVE HASHES PARADIGM)"
+
+
+x = main1(read1, 5, 20, False)
+y = main2(read1, 5, 20)
+z = main2(read1, 5, 20, True)
+u = main3(50, read1, 5, 20)
+w = main4(read1, 5)
+
+def printReads(cluster_list, reads):
+    """
+    Print clusters of reads with cluster error.
+    Input: list of clusters
+    """
+    for cluster in cluster_list:
+        print "\nCluster error: ", cluster.clusterError()
+        for idx in cluster.getIDs():
+            print reads[idx]
 
 
 
