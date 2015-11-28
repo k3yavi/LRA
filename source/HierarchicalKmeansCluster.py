@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Tue Nov 17 20:26:48 2015
-Last modified on ... Fri Nov 27 15:53:06 2015
+Last modified on ... Fri Nov 27 21:55:55 2015
 
 Hierarchical and kmekclusters clustering implementation for RNA/DNA reads.
 
@@ -245,32 +245,9 @@ def autoHierarchical(num_reads, error_t):
     
 #y = hierarchical(200, 3)
     
-#z = autoHierarchcical(200, 20)
+#z = autoHierarchical(200, 20)
     
 #for k in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
 #    print "k = ", k
 #    kmeans(1000, k)
 
-
-    
-
-
-            
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
