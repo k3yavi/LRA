@@ -76,7 +76,7 @@ def hashLSH(kmers, ran_numbers):
 
 def compress(bucket):
     """
-    Take the average of reads in bucket.
+    Compute the best representative read/kmer of reads/kmers in a bucket.
     
     Input: Bucket of raw reads as strings.
     Output: Average read as string.
