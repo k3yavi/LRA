@@ -217,7 +217,7 @@ def main4(kmers, bucket_t):
     results = main1(kmers, bucket_t, 20)
     print "\nKMER APPROXIMATE CLUSTERING VIA LSH (PRIMITIVE HASHES PARADIGM)"
     
-    return results
+    return results[0], kmers
 
 
 x = main1(read1, 5, 20, False)
@@ -240,4 +240,4 @@ def printReads(cluster_list, reads):
 #printReads(y, read1)
 #printReads(z, read1)
 #printReads(u, read1)
-#printReads(w, read1)
+#printReads(w[0], w[1])
