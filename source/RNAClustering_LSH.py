@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Wed Nov 25 23:35:58 2015
-Last modified on ... Fri Nov 27 15:53:06 2015
+Last modified on ... Fri Nov 27 21:55:55 2015
 
 Locality-Sensitive Hashing applied to cluster RNA/DNA kmers.
 
@@ -214,8 +214,10 @@ def main4(kmers, bucket_t):
     """
     kmerHash1 = kmerHashMap(kmers, 32) # kmers-reads hash map
     kmers = kmerHash1.keys()
-    main1(kmers, bucket_t, 20)
+    results = main1(kmers, bucket_t, 20)
     print "\nKMER APPROXIMATE CLUSTERING VIA LSH (PRIMITIVE HASHES PARADIGM)"
+    
+    return results
 
 
 x = main1(read1, 5, 20, False)
@@ -234,43 +236,8 @@ def printReads(cluster_list, reads):
         for idx in cluster.getIDs():
             print reads[idx]
 
-
-
-        
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#printReads(x[0], read1)
+#printReads(y, read1)
+#printReads(z, read1)
+#printReads(u, read1)
+#printReads(w, read1)
