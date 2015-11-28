@@ -10,6 +10,7 @@ Locality-Sensitive Hashing applied to cluster RNA/DNA kmers.
 
 from HierarchicalKmeansCluster import *
 
+
 def kmerHashMap(reads, k):
     """
     Create a hash map between kmers and readings. 
@@ -74,12 +75,13 @@ def hashLSH(kmers, ran_numbers):
             hashMap[temp] = [kmer]
     return hashMap
 
+
 def compress(bucket):
     """
     Compute the best representative read/kmer of reads/kmers in a bucket.
     
     Input: Bucket of raw reads as strings.
-    Output: Average read as string.
+    Output: Average read (best representative) as string.
     """
     acgt = {0:'A', 1:'C', 2:'G', 3:'T', 4:'T'}
     sumVector = 4*len(bucket[0])*[0]
@@ -106,6 +108,7 @@ def compress(bucket):
             count = 0
             
     return average
+    
 #******************************************************************************
 # TESTING ZONE
 #******************************************************************************
@@ -119,20 +122,24 @@ read2 = readFastq('ERR266411_1.for_asm.fastq')[0]
 def main1(list_reads, bucket_t, error_t, kmers = True):
     """
     Test LSH for reads/kmers. Hash = concatenation of random primitive hashes.
-    For kmers the number of primitive hashes is set to 32, 4 cycles of hashing.
+    For kmers the number of primitive hashes is set to 16, 8 cycles of hashing.
     For reads the number of primitive hashes is set to 50, 8 cycles of hashing.
     
-    Input: list of reads/kmers, kmers or reads?
+    Input: list of reads/kmers, bucket threshold to be accepted, error threshold, 
+    kmers or reads?
     Output: list of clusters, list of reads not clustered.
     """
     print "\n******************************************************************"
     print "\n        F I R S T  S T A G E: LOCALITY-SENSITIVE HASHING "
+    
     if kmers:
         k = 16 # are we analyzing kmers?
     else:
         k = 25 # are we analyzing reads?
+   
     # initialization
     count = 0
+    # formatting reads as: (ID, 'ACGCCG...')
     reads = [(idx, list_reads[idx]) for idx in range(len(list_reads))]
     clusters = []
     reads_clustered = 0
@@ -141,21 +148,20 @@ def main1(list_reads, bucket_t, error_t, kmers = True):
     
     tic = time.clock()
     # hash, filter and rehash those isolated reads 
-    while count < bit_length / k: # loop to re-apply LSH 4 or 8 cycles of hashing.
+    while count < bit_length / k: # loop to re-apply LSH, 8 cycles of hashing.
         ran_numbers = set(random.sample(indices, k)) # sample indices
-        indices = indices.difference(ran_numbers) # substract sampled indices
+        indices = indices.difference(ran_numbers) # substract from index set those sampled indices
         result = hashLSH(reads, ran_numbers) 
         temp = []
-        for bucket in result.values(): # filter unclustered reads
+        # decide if a bucket is accpeted or not. If not, put its reads back in unclustered reads.
+        for bucket in result.values(): 
             if len(bucket) > bucket_t:
                 cluster = Cluster(bucket)
                 error = cluster.clusterError()
+                # Another filter. If the bucket's cluster error is above error threshold, dismiss it.
                 if error < error_t:
                     clusters.append(Cluster(bucket))
                     reads_clustered += len(bucket)
-#                    print "\nCluster error: ", error
-#                    for item in bucket:
-#                        print item[1]
                 else:
                     temp += bucket
             else:
@@ -178,7 +184,7 @@ def main2(list_reads, bucket_t, error_t, stage3 = False):
     generate K initial clusters, and the rest of reads not clustered. Then 
     apply kmeans clustering, where iterations = log(n).
     
-    Input: list of reads.
+    Input: list of reads, bucket threshold, error threshold, 2 or 3 stages?
     Output: list of cluster objects.
     """
     # first stage of clustering
@@ -186,8 +192,8 @@ def main2(list_reads, bucket_t, error_t, stage3 = False):
 
     print "\n        S E C O N D  S T A G E: KMEANS-CLUSTERING "
     tic = time.clock()
-    not_clustered = [Cluster([read]) for read in results[1]]
     # initializing Cluster objects
+    not_clustered = [Cluster([read]) for read in results[1]]
     cluster_list = results[0] + not_clustered
     # seting the number of iterations as log(n)
     iterations = 1 + int(math.log(len(list_reads), 2))
@@ -202,9 +208,12 @@ def main2(list_reads, bucket_t, error_t, stage3 = False):
         
     print "\n        T H I R D  S T A G E: HIERARCHICAL-CLUSTERING"
     tic = time.clock()
+    # Apply automatic hierarchical clustering for clusters from stage 2. 
+    # Error threshold is set to 20.
     results3 = autHierClustering(results2, 20)
     printResults(results3, list_reads)
     toc = time.clock()
+    
     print "Number of clusters:     ", len(results3)
     print "\nRunning time:           ", round(toc-tic, 2), " s"
     
@@ -217,10 +226,16 @@ def main3(k, list_reads, bucket_t, error_t):
     with k initial clusters, then apply automatic hierarchical
     clustering with a threshold = 20
     
-    Input: list of reads.
+    Input: number of initial clusters (k), list of reads, bucket threshold,
+    error threshold.
     Output: list of cluster objects.
     """
-    results = kmeans(1000, 50)
+    # next line refers to a method outside this file. It computes kmeans
+    # of 'read1' (a particular set of reads from a fastq file), takes as 
+    # argument: # of reads from 'read1', and value of k.
+    # This should be re-implemented, in order to take as argument any
+    # list of reads.
+    results = kmeans(1000, 50) 
     
     print "\n        S E C O N D  S T A G E: HIERARCHICAL-CLUSTERING"
     tic = time.clock()
@@ -239,7 +254,7 @@ def main4(kmers, bucket_t):
     hash functions, sampling every time 32 indices without replacement for
     128-bit vectors.
     
-    Input: List of kmers.
+    Input: List of kmers, bucket threshold.
     Output: List of clusters of kmers. Those clusters with less than a bucket 
     threshold of kmers are ignored.
     """
@@ -257,6 +272,7 @@ z = main2(read1, 5, 20, True)
 u = main3(50, read1, 5, 20)
 w = main4(read1, 5)
 
+
 def printReads(cluster_list, reads):
     """
     Print clusters of reads with cluster error.
@@ -267,11 +283,13 @@ def printReads(cluster_list, reads):
         for idx in cluster.getIDs():
             print reads[idx]
 
+
 #printReads(x[0], read1)
 #printReads(y, read1)
 #printReads(z, read1)
 #printReads(u, read1)
 #printReads(w[0], w[1])
+
 
 def main5():
     """
@@ -293,4 +311,4 @@ def main5():
      
     print compress(bucket)
         
-main5()
+#main5()
