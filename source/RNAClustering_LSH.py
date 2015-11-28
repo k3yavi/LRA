@@ -74,7 +74,39 @@ def hashLSH(kmers, ran_numbers):
             hashMap[temp] = [kmer]
     return hashMap
 
-
+def compress(bucket):
+    """
+    Take the average of reads in bucket.
+    
+    Input: Bucket of raw reads as strings.
+    Output: Average read as string.
+    """
+    acgt = {0:'A', 1:'C', 2:'G', 3:'T', 4:'T'}
+    sumVector = 4*len(bucket[0])*[0]
+    average =''    
+    
+    for read in bucket:
+        temp = unaryMap(read)
+        for idx in range(len(temp)):
+            sumVector[idx] += int(temp[idx])
+    
+    best = 0
+    index = 0
+    count = 0
+    
+    for idx in range(len(sumVector)):
+        if sumVector[idx] > best:
+            index = idx
+            best = sumVector[idx]
+        count += 1
+        if count == 4:
+            average += acgt[index%4]
+            best = 0
+            index = 0
+            count = 0
+            
+    return average
+    
 #******************************************************************************
 # TESTING ZONE
 #******************************************************************************
@@ -122,9 +154,6 @@ def main1(list_reads, bucket_t, error_t, kmers = True):
                 if error < error_t:
                     clusters.append(Cluster(bucket))
                     reads_clustered += len(bucket)
-#                    print "\nCluster error: ", error
-#                    for item in bucket:
-#                        print item[1]
                 else:
                     temp += bucket
             else:
@@ -214,15 +243,17 @@ def main4(kmers, bucket_t):
     """
     kmerHash1 = kmerHashMap(kmers, 32) # kmers-reads hash map
     kmers = kmerHash1.keys()
-    main1(kmers, bucket_t, 20)
+    results = main1(kmers, bucket_t, 20)
     print "\nKMER APPROXIMATE CLUSTERING VIA LSH (PRIMITIVE HASHES PARADIGM)"
+    
+    return results[0], kmers
 
 
-x = main1(read1, 5, 20, False)
-y = main2(read1, 5, 20)
-z = main2(read1, 5, 20, True)
-u = main3(50, read1, 5, 20)
-w = main4(read1, 5)
+#x = main1(read1, 5, 20, False)
+#y = main2(read1, 5, 20)
+#z = main2(read1, 5, 20, True)
+#u = main3(50, read1, 5, 20)
+#w = main4(read1, 5)
 
 def printReads(cluster_list, reads):
     """
@@ -234,10 +265,34 @@ def printReads(cluster_list, reads):
         for idx in cluster.getIDs():
             print reads[idx]
 
+#printReads(x[0], read1)
+#printReads(y, read1)
+#printReads(z, read1)
+#printReads(u, read1)
+#printReads(w[0], w[1])
 
 
+def main5():
+    """
+    Testing compressed.
+    """
+    bucket = ['CCTAACANTAACCCTAACCCCTAACCCTAACC',
+              'CCTAACCCTAAACCCTAAACCCTAAACCCTAA',
+              'CCTAACCCTAAACCTAACCTCTCACCCTAACC',
+              'CCTAACCCCTAACCCTAACCCCTAACCCCTNA',
+              'CCTAACCCTAACCCTAAACCCTAAACCCTAAA',
+              'CCTAACCCTAACCCTTAACCCTTAANCCTTAA',
+              'CCTAACCCTAACCCTAACANCCCTAACCCTAA',
+              'CCTAACCCTAACCCTAACCCTAACCACCCTAA',
+              'CTTAACCCTTAANCCTTAACCCTTAACCCTAA',
+              'CCTAACCCTAACCCTAACCCTTAACCCTTAAN',
+              'CCTAACCCTAACCCTAACCCTTAACCCTAACN',
+              'CCTAACCCTNACCCTAACCCTTAACCCTAACC',
+              'CCTAACCCTTACCCTTAACCCTTAACCCTNAA']
+     
+    print compress(bucket)
         
-    
+main5()
 
 
 
