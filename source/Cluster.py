@@ -16,8 +16,8 @@ DIM = 1
 #******************************************************************************
 def statsVectors(reads):
     """
-    This function creates a list of stats vectors, one per read in 'reads'.
-    Each stats vector is defined as:
+    This function creates a list of stats (features) vectors, one per read 
+    in 'reads'. Each stats vector is defined as:
     
     (#A's, #C's, #G's, #T's, d(A's), d(C's), d(G's), d(T's), #switches, errors)
     
@@ -28,7 +28,7 @@ def statsVectors(reads):
         
     With this information we can encode a read as a 10-tuple, so that the
     manhattan/euclidean metrics can be used in a 10-dimensional space to
-    measure closeness of the properties encoded in the stats vector of any 
+    measure closeness of the features encoded in the stats vector of any 
     two reads.
     """
     stats_vectors = []
