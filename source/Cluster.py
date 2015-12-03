@@ -33,6 +33,9 @@ def statsVectors(reads):
     for read in reads:
         # initialize read's counters of each base
         count = {'A':0, 'C':0, 'G':0, 'T':0}
+        # disambiguation hash for lower/upper case of bases
+        base_map = {'a':'A', 'c':'C', 'g':'G', 't':'T', 'n':'N',
+                    'A':'A', 'C':'C', 'G':'G', 'T':'T', 'N':'N'}
         # 'A':[a, b]: a = distance in between A's, b = index of last 'A'
         dist = {'A':[0, None], 'C':[0, None], 'G':[0, None], 'T':[0, None]}
         num_switch = 0 # counter to keep track of alternation of bases
@@ -40,7 +43,8 @@ def statsVectors(reads):
         index = 0 # to indicate current's base index
         errors = 0 # number of N's in the read
         # loop through read's bases 
-        for base in read:
+        for item in read:
+            base = base_map[item] 
             # update number of switches
             if base != prev_base:
                 num_switch += 1
