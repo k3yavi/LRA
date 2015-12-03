@@ -67,7 +67,8 @@ def pairedFastq(filename1, filename2, limit = float('inf')):
         seq_1, seq_2 = fh1.readline().rstrip(), fh2.readline().rstrip()
         fh1.readline()  # ignore line starting with +
         fh2.readline()  # ignore line starting with +
-        qual_1, qual_2 = fh1.readline().rstrip(), fh2.readline().rstrip()
+        fh1.readline()  # ignore qualities line
+        fh2.readline()  # ignore qualities line
         reads.append([(name_1, seq_1), (name_2, seq_2)])
         count += 1
     
