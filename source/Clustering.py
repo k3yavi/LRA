@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 
 #reads = readFastq('ERR037900_1.first1000.fastq')[0]
 #reads = readFastq('ERR266411_1.for_asm.fastq')[0]
-reads = readFastq('r2_fill.fq', 100000)[0]
+reads = readFastq('r1_fill.fq')[0]
 
 #paired_reads = pairedFastq('r1_fill.fq', 'r2_fill.fq', 1000)
 
@@ -131,7 +131,17 @@ clusters = secondStep(initial_clusters, k, len(reads), 1)
 # third stage
 new_clusters = thirdStep(clusters, reads, 20)
 
-## new_clusters is the final list of Cluster objects.
-## To look at reads' IDs use the method: Cluster.getIDs()
-## which returns a list of string IDs from the original
-## fastq file.
+
+def fileClusters(cluster_list):
+    """
+    Writes to a file clusters' reads IDs.
+    """
+    text_file = open("clusters.txt", "w")
+    for cluster in cluster_list:
+        for ID in cluster.getIDs():
+            text_file.write(ID + '\n')
+        text_file.write('\n')
+    text_file.close()
+
+# write clusters to file
+fileClusters(new_clusters)
