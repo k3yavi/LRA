@@ -1,44 +1,78 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Tue Nov 17 20:26:48 2015
-Last modified on ... Fri Nov 27 21:55:55 2015
-
-Hierarchical and kmekclusters clustering implementation for RNA/DNA reads.
-
+Last modified on ... Mon Nov 30 23:52:44 2015
+Hierarchical and kmeans clustering implementation for RNA/DNA reads.
 @author: Caleb Andrade
 """
 
 from Cluster import Cluster
-import time
 import random
-import math
 
 # DIM = 1 manhattan metric; DIM = 2 euclidean metric
 DIM = 1
 
-def readFastq(filename):
+
+def readFastq(filename, limit = float('inf')):
     """
     Parse read and quality strings from a FASTQ file with sequencing reads.
     @author: Ben Langmead & Jacob Pritt.
     
-    Input: file path
-    Output: A list of reads, the list of qualities
+    Input: file path, limit of number of reads to extract from file
+    Output: The list of (id, reads), the list of qualities.
     """
     sequences = []
     qualities = []
+    count = 0 # counts lines
     
     with open(filename) as fh:
-        while True:
-            fh.readline() # skip name line
-            seq = fh.readline().rstrip() #read base sequence
+        while count < limit:
+            first_line = fh.readline()
+            name = first_line[1:].rstrip() # name line
+            seq = fh.readline().rstrip() # read base sequence
             fh.readline() # skip placeholder line
             qual = fh.readline().rstrip() # base quality line
             if len(seq) == 0:
                 break
-            sequences.append(seq)
+            sequences.append((name, seq))
             qualities.append(qual)
+            count += 1
             
     return sequences, qualities
+
+
+def pairedFastq(filename1, filename2, limit = float('inf')):
+    """
+    Parse paired-end reads from a pair of FASTQ filehandles
+    For each pair, we return a name, the nucleotide string
+    for the first end, the quality string for the first end,
+    the nucleotide string for the second end, and the
+    quality string for the second end.
+    
+    @author: Ben Langmead
+    @adaptation: Caleb Andrade
+    """
+    reads = []
+    count = 0 # counts lines
+    
+    fh1 = open(filename1) 
+    fh2 = open(filename2)
+    
+    while count < limit:
+        first_line_1 = fh1.readline()
+        first_line_2 = fh2.readline()
+        if len(first_line_1) == 0:
+            break  # end of file
+        name_1, name_2 = first_line_1[1:].rstrip(), first_line_2[1:].rstrip()
+        seq_1, seq_2 = fh1.readline().rstrip(), fh2.readline().rstrip()
+        fh1.readline()  # ignore line starting with +
+        fh2.readline()  # ignore line starting with +
+        fh1.readline()  # ignore qualities line
+        fh2.readline()  # ignore qualities line
+        reads.append([(name_1, seq_1), (name_2, seq_2)])
+        count += 1
+    
+    return reads
 
 
 def closestPair(cluster_list):
@@ -84,7 +118,7 @@ def hierClustering(cluster_list, num_clusters):
     return cluster_list
     
     
-def autHierClustering(cluster_list, threshold):
+def autoClustering(cluster_list, threshold):
     """
     Compute a hierarchical clustering of a set of clusters.
     Note: number of clusters depend on a specified error threshold.
@@ -119,7 +153,7 @@ def autHierClustering(cluster_list, threshold):
     return new_cluster_list
     
 
-def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True):
+def kmeansClustering(cluster_list, k, iterations, shuffle = True):
     """
     Compute the k-means clustering of a set of clusters (RNA/DNA reads)
     Note: the function may not mutate cluster_list
@@ -129,20 +163,23 @@ def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True)
     """
     kclusters = [] # this list to store k clusters to compare with (non-mutable)
     centroids = [] # this list to store the initial k centroids (average stats vectors)
-    temp = list(cluster_list)
-    # select initial k clusters    
     if shuffle:
-        random.shuffle(temp)
+        # shuffle cluster list
+        random.shuffle(cluster_list) 
+    else:
+        # sort it by size
+        cluster_list.sort(key = lambda cluster: cluster.getSize(), reverse = True)
 
-    # sample k initial random clusters to define initial centroids
-    for cluster in temp[:num_clusters]:
+    # k initial clusters to define initial centroids
+    for cluster in cluster_list[:k]:
+#        print "Cluster size: ", cluster.getSize()
         kclusters.append(cluster.copy())
         centroids.append(cluster.getAvgStats())
         
-    for dummy_i in range(num_iterations):
+    for iteration in range(iterations):
         clusters = []
         # initialize new empty cluster objects at the centroids
-        for idx in range(num_clusters):
+        for idx in range(k):
             cluster = Cluster([])
             cluster.avg_stats_vectors = list(centroids[idx])
             clusters.append(cluster)
@@ -151,127 +188,30 @@ def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True)
         for num in range(len(cluster_list)):
             best = (float('inf'), -1)
             # compare distance to every centroid at kclusters
-            for idx in range(num_clusters):
+            for idx in range(k):
                 temp = cluster_list[num].distance(kclusters[idx])
                 if temp < best[0]:
                     best = (temp, idx)
             # merge cluster to best centroid in list of mutable clusters
             clusters[best[1]].mergeClusters(cluster_list[num])
         
-        # make a copy of re-calculated centroids: kclusters and centroids.
-        for idx in range(num_clusters):
+        # make a copy of re-computed centroids: kclusters and centroids.
+        for idx in range(k):
             kclusters[idx] = clusters[idx].copy()
             centroids[idx] = (clusters[idx].getAvgStats())
+    
     return kclusters
 
-
-def printResults(results, all_reads):
+def printResults(clusters, n):
     """
     Display results.
     
-    Input: List of clusters, number of reads per species, number of species,
-    initial time, finishing time.
+    Input: List of clusters.
     """
     mean_error = 0
-    for cluster in results:
+    for cluster in clusters:
         temp = cluster.clusterError()
         mean_error += temp*cluster.getSize()
     
-    print "\nWeighted Average Error: ", round(mean_error / len(all_reads), 2) 
+    print "\nWeighted Average Error: ", round(mean_error / n, 2) 
     
-#******************************************************************************
-#                          T E S T I N G    Z O N E     
-#******************************************************************************
-read0 = readFastq('ads1_week4_reads.fq')[0]
-read1 = readFastq('ERR037900_1.first1000.fastq')[0]
-read2 = readFastq('ERR266411_1.for_asm.fastq')[0]
-
-
-def kmeans(num_reads, num_clusters):
-    """
-    Testing kmeans clustering.
-    
-    Input: number of reads per species to be clustered, number of clusters.
-    Output: list of clusters
-    """
-    ## Mix reads
-#    all_reads = read0[:num_reads] + read1[:num_reads] + read2[:num_reads]
-    all_reads = read1[:num_reads]
-    
-    ## label reads
-    reads = [(idx, all_reads[idx]) for idx in range(len(all_reads))]
-    
-    ## create initial list of clusters
-    cluster_list = [Cluster([read]) for read in reads] 
-    
-    print "\n********************** KMEANS CLUSTERING ************************"
-    tic = time.clock()
-    iterations = 1 + int(math.log(len(cluster_list), 2))
-    results = kmeansClustering(cluster_list, num_clusters, iterations)
-    toc = time.clock()
-    printResults(results, all_reads)
-    print "\nRunning time: ", toc-tic
-    
-    return results
-        
-    
-def hierarchical(num_reads, num_clusters):
-    """
-    Testing hierarchical clustering.
-    
-    Input: number of reads per species to be clustered, number of clusters.
-    """
-    ## Mix reads
-#    all_reads = read0[:num_reads] + read1[:num_reads] + read2[:num_reads]
-    all_reads = read1[:num_reads]
-    
-    ## label reads
-    reads = [(idx, all_reads[idx]) for idx in range(len(all_reads))]
-    
-    ## create initial list of clusters
-    cluster_list = [Cluster([read]) for read in reads] 
-    
-    print "\n******************** HIERARCHICAL CLUSTERING ********************"
-    tic = time.clock()
-    results = hierClustering(cluster_list, num_clusters, closestPair)
-    toc = time.clock()
-    printResults(results, all_reads)
-    print "\nRunning time: ", toc-tic
-    
-
-def autoHierarchical(num_reads, error_t):
-    """
-    Testing automated hierarchcial clustering, it will stop when any merging
-    of clusters would produce an error cluster above some threshold.
-    
-    Input: number of reads per species to be clustered, number of clusters,
-    error threshold.
-    """
-    ## Mix reads
-#    all_reads = read0[:num_reads] + read1[:num_reads] + read2[:num_reads]
-    all_reads = read1[:num_reads]
-    
-    ## label reads
-    reads = [(idx, all_reads[idx]) for idx in range(len(all_reads))]
-    
-    ## create initial list of clusters
-    cluster_list = [Cluster([read]) for read in reads] 
-    
-    print "\n****************** AUT HIERARCHICAL CLUSTERING ******************"
-    tic = time.clock()
-    results = autHierClustering(cluster_list, error_t)
-    toc = time.clock()
-    printResults(results, all_reads)
-    print "\nRunning time: ", toc-tic
-    
-
-#x = kmeans(1000, 50)    
-    
-#y = hierarchical(200, 3)
-    
-#z = autoHierarchical(200, 20)
-    
-#for k in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-#    print "k = ", k
-#    kmeans(1000, k)
-
