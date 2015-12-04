@@ -21,15 +21,18 @@ def main():
     #reads = readFastq('ERR266411_1.for_asm.fastq')[0]
     reads = readFastq(args.infile)[0]
 
-    #paired_reads = pairedFastq('r1_fill.fq', 'r2_fill.fq', 1000)
-
+    N = len(reads)
     # first stage
-    initial_clusters, k = firstStep(reads, 5)
+    initial_clusters, k = firstStep(reads, 4, N)
+    del reads # no need to keep this list of initial reads
+    
     # second stage
-    clusters = secondStep(initial_clusters, k, len(reads), 1)
-    # third stage
-    new_clusters = thirdStep(clusters, reads, 20)
+    clusters = secondStep(initial_clusters, k, N, 1)
+    del initial_clusters
 
+    # third stage
+    new_clusters = thirdStep(clusters, N, 25)
+    
     # write clusters to file
     fileClusters(new_clusters)
 
@@ -54,7 +57,7 @@ def statMeasures(values):
     return average, (float(sum(variance)) / (len(values) - 1))**0.5
     
 
-def firstStep(reads, min_bucket_size):
+def firstStep(reads, min_bucket_size, n):
     """
     Compute LSH for reads/kmers. Hash = concatenation of random primitive hashes.
         
@@ -71,16 +74,16 @@ def firstStep(reads, min_bucket_size):
             
     tic = time.clock()
     # sample primitive hashes indices, and apply the respective LSH hash
-    result = hashLSH(reads, random.sample(range(4*length), length)) 
+    result = hashLSH(reads, random.sample(range(4*length), length)).values() 
     # initialize Cluster objects with hash buckets
-    for bucket in result.values():
+    for bucket in result:
         clusters.append(Cluster(bucket))
         # append cluster sizes to histogram that are above a given threshold
         if min_bucket_size < len(bucket):
             # discard cluster sizes for histogram that are > 1% of total reads
             # This clusters will be indeed part of the k initial clusters
             # but we don't count them for purposes of size average and std. dev.
-            if len(bucket) < len(reads)*0.01: 
+            if len(bucket) < n*0.01: 
                 histogram.append(len(bucket))
             else:
                 k += 1 # increase the number of k clusters
@@ -92,8 +95,8 @@ def firstStep(reads, min_bucket_size):
         if value < avg + 2*std_dev:
             break
         k += 1 # increase the number of k clusters
-        
-    print "\nTotal number of reads : ", len(reads)
+           
+    print "\nTotal number of reads : ", n
     print "Number of clusters:     ", len(clusters)
     print "Running time:           ", round(toc-tic, 2), " s"
     print "k: ", k
@@ -123,7 +126,7 @@ def secondStep(cluster_list, k, n, loops):
     return clusters
     
     
-def thirdStep(clusters, reads, error_t):
+def thirdStep(clusters, n, error_t):
     """
     Third stage of clustering: after kmeans we obtain k clusters, hierarchical
     clustering looks if it is possible to further merge this clusters but
@@ -136,7 +139,7 @@ def thirdStep(clusters, reads, error_t):
     tic = time.clock()
     # Apply automatic hierarchical clustering for clusters from stage 2. 
     new_clusters = autoClustering(clusters, error_t)
-    printResults(new_clusters, len(reads))
+    printResults(new_clusters, n)
     toc = time.clock()
     
     print "Number of clusters:     ", len(new_clusters)

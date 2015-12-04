@@ -153,7 +153,7 @@ def autoClustering(cluster_list, threshold):
     return new_cluster_list
     
 
-def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True):
+def kmeansClustering(cluster_list, k, iterations, shuffle = True):
     """
     Compute the k-means clustering of a set of clusters (RNA/DNA reads)
     Note: the function may not mutate cluster_list
@@ -163,23 +163,23 @@ def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True)
     """
     kclusters = [] # this list to store k clusters to compare with (non-mutable)
     centroids = [] # this list to store the initial k centroids (average stats vectors)
-    temp = list(cluster_list)
-    # select initial k clusters    
     if shuffle:
-        random.shuffle(temp) # pick randomly k initial clusters
+        # shuffle cluster list
+        random.shuffle(cluster_list) 
     else:
-        # pick the k biggest clusters
-        temp.sort(key = lambda cluster: cluster.getSize(), reverse = True)
+        # sort it by size
+        cluster_list.sort(key = lambda cluster: cluster.getSize(), reverse = True)
 
-    # sample k initial random clusters to define initial centroids
-    for cluster in temp[:num_clusters]:
+    # k initial clusters to define initial centroids
+    for cluster in cluster_list[:k]:
+#        print "Cluster size: ", cluster.getSize()
         kclusters.append(cluster.copy())
         centroids.append(cluster.getAvgStats())
         
-    for dummy_i in range(num_iterations):
+    for iteration in range(iterations):
         clusters = []
         # initialize new empty cluster objects at the centroids
-        for idx in range(num_clusters):
+        for idx in range(k):
             cluster = Cluster([])
             cluster.avg_stats_vectors = list(centroids[idx])
             clusters.append(cluster)
@@ -188,20 +188,19 @@ def kmeansClustering(cluster_list, num_clusters, num_iterations, shuffle = True)
         for num in range(len(cluster_list)):
             best = (float('inf'), -1)
             # compare distance to every centroid at kclusters
-            for idx in range(num_clusters):
+            for idx in range(k):
                 temp = cluster_list[num].distance(kclusters[idx])
                 if temp < best[0]:
                     best = (temp, idx)
             # merge cluster to best centroid in list of mutable clusters
             clusters[best[1]].mergeClusters(cluster_list[num])
         
-        # make a copy of re-calculated centroids: kclusters and centroids.
-        for idx in range(num_clusters):
+        # make a copy of re-computed centroids: kclusters and centroids.
+        for idx in range(k):
             kclusters[idx] = clusters[idx].copy()
             centroids[idx] = (clusters[idx].getAvgStats())
     
     return kclusters
-
 
 def printResults(clusters, n):
     """
