@@ -16,9 +16,10 @@ from matplotlib import pyplot as plt
 
 
 def main():
+    args = parse_args()
     #reads = readFastq('ERR037900_1.first1000.fastq')[0]
     #reads = readFastq('ERR266411_1.for_asm.fastq')[0]
-    reads = readFastq('r1_fill.fq')[0]
+    reads = readFastq(args.infile)[0]
 
     #paired_reads = pairedFastq('r1_fill.fq', 'r2_fill.fq', 1000)
 
@@ -31,6 +32,13 @@ def main():
 
     # write clusters to file
     fileClusters(new_clusters)
+
+
+def parse_args():
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument('infile', help='the FASTQ read file')
+        return parser.parse_args()
 
 
 def statMeasures(values):
