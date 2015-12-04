@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on ......... Mon Nov 30 22:42:01 2015
@@ -13,11 +14,23 @@ from LocalitySensitive import *
 from Cluster import Cluster
 from matplotlib import pyplot as plt
 
-#reads = readFastq('ERR037900_1.first1000.fastq')[0]
-#reads = readFastq('ERR266411_1.for_asm.fastq')[0]
-reads = readFastq('r1_fill.fq')[0]
 
-#paired_reads = pairedFastq('r1_fill.fq', 'r2_fill.fq', 1000)
+def main():
+    #reads = readFastq('ERR037900_1.first1000.fastq')[0]
+    #reads = readFastq('ERR266411_1.for_asm.fastq')[0]
+    reads = readFastq('r1_fill.fq')[0]
+
+    #paired_reads = pairedFastq('r1_fill.fq', 'r2_fill.fq', 1000)
+
+    # first stage
+    initial_clusters, k = firstStep(reads, 5)
+    # second stage
+    clusters = secondStep(initial_clusters, k, len(reads), 1)
+    # third stage
+    new_clusters = thirdStep(clusters, reads, 20)
+
+    # write clusters to file
+    fileClusters(new_clusters)
 
 
 def statMeasures(values):
@@ -124,14 +137,6 @@ def thirdStep(clusters, reads, error_t):
     return new_clusters   
     
 
-# first stage
-initial_clusters, k = firstStep(reads, 5)
-# second stage
-clusters = secondStep(initial_clusters, k, len(reads), 1)
-# third stage
-new_clusters = thirdStep(clusters, reads, 20)
-
-
 def fileClusters(cluster_list):
     """
     Writes to a file clusters' reads IDs.
@@ -143,5 +148,7 @@ def fileClusters(cluster_list):
         text_file.write('\n')
     text_file.close()
 
-# write clusters to file
-fileClusters(new_clusters)
+
+if __name__ == '__main__':
+    main()
+
