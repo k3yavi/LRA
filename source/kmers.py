@@ -1,6 +1,7 @@
 #!/user/bin/python
 import numpy
 import itertools
+import math
 import pyfasta
 __author__ = 'soumadipmukherjee'
 def performKmerHash(klength,reads):
@@ -11,8 +12,10 @@ def performKmerHash(klength,reads):
     for r in reads:
         full_read = r[1] #assign the full read to the variable
         u_limit = len(full_read) - klength + 1 #the upper limit below loop
+        r.append(set())
         for x in range(0, u_limit):
             #print full_read[x:(x+klength)]
+            r[2].add(full_read[x:(x+klength)])
             try:
                 #if the key is present append the read id to the SET
                 k_hash[full_read[x:(x+klength)]].add(r[0])
@@ -21,9 +24,30 @@ def performKmerHash(klength,reads):
                 k_hash[full_read[x:(x+klength)]] = set([r[0]])
         #inner for
     #outer for
+    #print k_hash
+    #print reads
+    return k_hash, reads
 
-    print k_hash
-    return k_hash
+def cosineDistance(reads):
+    matrix_const = len(reads)
+    cos_matrix = numpy.zeros((matrix_const, matrix_const))#numpy.empty((matrix_const, matrix_const)) #constructy 2D array
+    #cos_matrix[:] = numpy.Infinity    #initialize array with infinity
+    #we will have a read by read length array. The bottom left and the diagnol are all Infinity
+    #the closer the number is to ONE, the closer the points are in K-Dimensional space
+    #the closer the number is to ZERO, the more distance there is K-Dimensional space
+    for x in range(0,matrix_const):
+        for y in range((x+1),matrix_const):
+            kmers_x = reads[x][2] #get set of kmers in read_x
+            kmers_y =  reads[y][2] #get set of kmers in read_y
+            intersection =  len(kmers_x.intersection(kmers_y))#find the number of intersections
+            numerator = intersection
+            denom_x = len(kmers_x) #find length of kmers_x, this will be used for magnitude
+            denom_y = len(kmers_y) #find length of kmers_y, this will be used for magnitude
+            cosTheta = numerator / (math.sqrt(denom_x) * math.sqrt(denom_y))
+            cos_matrix[x][y] = cosTheta
+    print cos_matrix
+    return cos_matrix
+
 
 def hierarchicalClustering(k_hash, r_hash, timesCluster):
     matrix_const = len(r_hash)
@@ -73,12 +97,17 @@ def hierarchicalClustering(k_hash, r_hash, timesCluster):
 
 def main():
     #reads have a unique ID and the read itself as coming in a tuple
-    reads = [(0, "ATATCGCGAT"), (1, "CGCGATCG"), (2, "CTCGATCGATCAGACAGTACAGTACA") ]
+    reads = [[0, "ATATCGCGAT"], [1, "CGCGATCG"], [2, "CTCGATCGATCAGACAGTACAGTACA"] ]
     #initially stores the read
     r_hash = []#{}
     for r in reads:
         r_hash.append(set([r[0]]))
-    k_hash = performKmerHash(2, reads)
+
+    print r_hash
+    k_hash, reads = performKmerHash(2, reads)
+    print k_hash
+    print reads
+    cosineDistance(reads)
     hierarchicalClustering(k_hash, r_hash, 1)
     clusters = []
     for r in r_hash:
