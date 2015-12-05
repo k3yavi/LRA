@@ -22,7 +22,6 @@ def readFastq(filename, limit = float('inf')):
     Output: The list of (id, reads), the list of qualities.
     """
     sequences = []
-    qualities = []
     count = 0 # counts lines
     
     with open(filename) as fh:
@@ -31,14 +30,13 @@ def readFastq(filename, limit = float('inf')):
             name = first_line[1:].rstrip() # name line
             seq = fh.readline().rstrip() # read base sequence
             fh.readline() # skip placeholder line
-            qual = fh.readline().rstrip() # base quality line
+            fh.readline().rstrip() # base quality line, ignore it
             if len(seq) == 0:
                 break
             sequences.append((name, seq))
-            qualities.append(qual)
             count += 1
             
-    return sequences, qualities
+    return sequences
 
 
 def pairedFastq(filename1, filename2, limit = float('inf')):
@@ -67,6 +65,8 @@ def pairedFastq(filename1, filename2, limit = float('inf')):
         seq_1, seq_2 = fh1.readline().rstrip(), fh2.readline().rstrip()
         fh1.readline()  # ignore line starting with +
         fh2.readline()  # ignore line starting with +
+        fh1.readline()  # ignore qualities
+        fh2.readline()  # ignore qualities
         fh1.readline()  # ignore qualities line
         fh2.readline()  # ignore qualities line
         reads.append([(name_1, seq_1), (name_2, seq_2)])
@@ -201,6 +201,7 @@ def kmeansClustering(cluster_list, k, iterations, shuffle = True):
             centroids[idx] = (clusters[idx].getAvgStats())
     
     return kclusters
+
 
 def printResults(clusters, n):
     """
