@@ -17,18 +17,18 @@ from matplotlib import pyplot as plt
 
 def main():
     args = parse_args()
-    #reads = readFastq('ERR037900_1.first1000.fastq')
-    #reads = readFastq('ERR266411_1.for_asm.fastq')
     reads = readFastq(args.infile)
     
     N = len(reads)
     
     # first stage
-    initial_clusters, k = firstStep(reads, 5)
+    initial_clusters, k = firstStep(reads, 5, N)
     del reads
+    
     # second stage
     clusters = secondStep(initial_clusters, k, N, 1)
     del initial_clusters
+
     # third stage
     new_clusters = thirdStep(clusters, N, 20)
 
@@ -60,8 +60,8 @@ def firstStep(reads, min_bucket_size, n):
     """
     Compute LSH for reads/kmers. Hash = concatenation of random primitive hashes.
         
-    Input: list of reads/kmers, minimum size of buckets.
-    Output: list of clustered reads (as Cluster objects)
+    Input: list of reads/kmers, minimum size of buckets, number of reads.
+    Output: list of clustered reads/kmers (as Cluster objects)
     """
     print "\n******************************************************************"
     print "\n        F I R S T  S T A G E: LOCALITY-SENSITIVE HASHING "
@@ -80,8 +80,6 @@ def firstStep(reads, min_bucket_size, n):
         # append cluster sizes to histogram that are above a given threshold
         if min_bucket_size < len(bucket):
             # discard cluster sizes for histogram that are > 1% of total reads
-            # This clusters will be indeed part of the k initial clusters
-            # but we don't count them for purposes of size average and std. dev.
             if len(bucket) < n*0.01: 
                 histogram.append(len(bucket))
             else:
@@ -107,10 +105,10 @@ def firstStep(reads, min_bucket_size, n):
 
 def secondStep(cluster_list, k, n, loops):
     """
-    Second stage: apply kmeans clustering using k initialized 
-    clusters in first stage.
+    Second stage: apply kmeans clustering using k largest
+    clusters from first stage.
     
-    Input: list of clusters, number of initial clusters, total reads,
+    Input: list of clusters, number of k clusters, total number of reads,
     number of kmeans loops.
     Output: list of Cluster objects.
     """
@@ -127,11 +125,10 @@ def secondStep(cluster_list, k, n, loops):
     
 def thirdStep(clusters, n, error_t):
     """
-    Third stage of clustering: after kmeans we obtain k clusters, hierarchical
-    clustering looks if it is possible to further merge this clusters but
-    without incurring in a error threshold. Running time is O(k^2).
+    After kmeans we obtain k clusters, in this stage, we attempt
+    to further merge clusters, but without surpassing an error threshold. 
     
-    Input: list of clusters, total reads, error threshold.
+    Input: list of clusters, total number of reads, error threshold.
     Output: list of cluster objects.
     """        
     print "\n        T H I R D  S T A G E: HIERARCHICAL-CLUSTERING"
