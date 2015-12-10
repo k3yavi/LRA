@@ -1,6 +1,6 @@
 __author__ = 'soumadipmukherjee'
-
-
+import random
+import numpy
 
 def readFastq(filename, filename2):
     """
@@ -162,6 +162,69 @@ def translateKmer(kmer):
         vector.append(translate_table[k])
     return vector
 
+#function will generate N random kmers of length k_length and return the random elements
+#in and array
+def generateNRandomVectors(n, k_length):
+    random_vectors = []
+    mapping= {
+        1: 1, #A
+        2: -1, #T
+        3: 2, #C
+        4: -2 #G
+    }
+    listOfOptions = [1, -1, 2, -2]
+    for x in range(0, n):
+        r_vec = []
+        for y in range(0,k_length):
+            r_vec.append(random.choice(listOfOptions))
+
+        random_vectors.append(r_vec)
+    return random_vectors
+
+def produceRandomMatrix(randomVectors, k_length):
+    randomVectorsMatrix = numpy.zeros((len(randomVectors), k_length), dtype= numpy.int8)
+    i = 0;
+    j = 0;
+    for r in randomVectors:
+        for val in r:
+            randomVectorsMatrix[i][j] = val
+            j+=1
+
+        j = 0
+        i +=1
+    return randomVectorsMatrix
+
+def produceKmerMatrix(kmers, k_length):
+    kmerMatrix = numpy.zeros((len(kmers), k_length), dtype=numpy.int8)
+    i = 0
+    j = 0
+    for kmer in kmers:
+        for val in kmer:
+            kmerMatrix[i][j] = val
+            j+= 1
+        i+=1
+        j=0
+
+    kmerMatrix = kmerMatrix.transpose()
+    # for val in kmers:
+    #     kmerMatrix[i][j] = val
+    #     j+=1
+
+    return kmerMatrix
+
+
+
+def produceAbundanceMatrix(reads, k_length, h_size):
+    randomVectorMatrix = produceRandomMatrix(generateNRandomVectors(h_size, k_length), k_length )
+    print randomVectorMatrix
+    for r_obj in reads:
+        kmers = r_obj["kmer_vectors"]
+        kmerMatrix = produceKmerMatrix(kmers, k_length)
+        RMatrix = numpy.dot(randomVectorMatrix , kmerMatrix)
+        print RMatrix
+        print RMatrix.size
+    return
+
 def prettyPrintObject(sequences):
     for x in sequences:
         print "#" * 100
@@ -182,12 +245,16 @@ def prettyPrintObject(sequences):
 
 r = readFastq("r1_test.fq", "r2_test.fq")
 #print r
-prettyPrintObject(r)
+# prettyPrintObject(r)
 buildKmerListForReads(r, 4)
-#print r
-
+# #print r
+#
 translateKmerList(r)
-print r
+# print r
 
+#randomVecs = generateNRandomVectors(10, 4)
+
+#produceRandomMatrix(randomVecs, 4)
+produceAbundanceMatrix(r, 4, 10)
 
 #print translateKmer("ATCG")
