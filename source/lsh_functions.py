@@ -92,7 +92,47 @@ def readFastq(filename, filename2):
                 read_obj["read2"] = mate2
                 sequences.append(read_obj)
     return sequences
-
+def buildKmerListForReads(reads, k_length):
+    for r_obj in reads:
+        r1 = r_obj["read1"]
+        r2 = r_obj["read2"]
+        bridgeIndex = r_obj["mate1_len"] - 1
+        kmer_array =  []
+        #go from 0 to bridgeIndex
+        #Dont consider Kmers with 'N' base in them
+        for x in range(0,((bridgeIndex+1)-k_length)):
+            k1 = r1[x:x+k_length]
+            k2 = r2[x:x+k_length]
+            b1 = 'N' in k1
+            b2 = 'N' in k2
+            if b1 == True and b2 == True:
+                continue
+            elif b1 == True and b2 == False:
+                kmer_array.append(k2)
+            elif b1 == False and b2 == True:
+                kmer_array.append(k1)
+            elif b1 <= b2:
+                kmer_array.append(k1)
+            else:
+                kmer_array.append(k2)
+        #from bridge index to the end of the read
+        for x in range(bridgeIndex,((len(r1))-k_length)):
+            k1 = r1[x:x+k_length]
+            k2 = r2[x:x+k_length]
+            b1 = 'N' in k1
+            b2 = 'N' in k2
+            if b1 == True and b2 == True:
+                continue
+            elif b1 == True and b2 == False:
+                kmer_array.append(k2)
+            elif b1 == False and b2 == True:
+                kmer_array.append(k1)
+            elif b1 <= b2:
+                kmer_array.append(k1)
+            else:
+                kmer_array.append(k2)
+        r_obj["kmer_list"] = kmer_array
+    return
 def prettyPrintObject(sequences):
     for x in sequences:
         print "#" * 100
@@ -106,6 +146,13 @@ def prettyPrintObject(sequences):
         # print "RC: ", x["rev_comp_seq"]
         print "#" * 100
         print ""
+
 #prettyPrintObject(readFastq("dummyTest.fastq"))
 
-prettyPrintObject(readFastq("r1_short.fq", "r2_short.fq"))
+#rettyPrintObject(readFastq("r1_short.fq", "r2_short.fq"))
+
+r = readFastq("r1_test.fq", "r2_test.fq")
+print r
+#prettyPrintObject(r)
+buildKmerListForReads(r, 4)
+print r
