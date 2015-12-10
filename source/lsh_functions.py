@@ -1,5 +1,7 @@
 __author__ = 'soumadipmukherjee'
-__author__ = 'soumadipmukherjee'
+
+
+
 def readFastq(filename, filename2):
     """
     Parse read and quality strings from a FASTQ file with sequencing reads.
@@ -133,6 +135,33 @@ def buildKmerListForReads(reads, k_length):
                 kmer_array.append(k2)
         r_obj["kmer_list"] = kmer_array
     return
+
+
+#transform the list of kmers to vectors representations
+def translateKmerList(reads):
+    for r_obj in reads:
+        kmer_list = r_obj["kmer_list"]
+        kmer_vectors = []
+        for k in kmer_list:
+                kmer_vectors.append(translateKmer(k))
+
+        r_obj["kmer_vectors"] = kmer_vectors
+    return
+
+
+#function returns the vector representation of the kmer, according to our mapping
+def translateKmer(kmer):
+    translate_table = {
+        'A': 1,
+        'T': -1,
+        'C': 2,
+        'G': -2
+    }
+    vector = []
+    for k in kmer:
+        vector.append(translate_table[k])
+    return vector
+
 def prettyPrintObject(sequences):
     for x in sequences:
         print "#" * 100
@@ -152,7 +181,13 @@ def prettyPrintObject(sequences):
 #rettyPrintObject(readFastq("r1_short.fq", "r2_short.fq"))
 
 r = readFastq("r1_test.fq", "r2_test.fq")
-print r
-#prettyPrintObject(r)
+#print r
+prettyPrintObject(r)
 buildKmerListForReads(r, 4)
+#print r
+
+translateKmerList(r)
 print r
+
+
+#print translateKmer("ATCG")
