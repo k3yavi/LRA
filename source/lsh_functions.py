@@ -1,6 +1,7 @@
 __author__ = 'soumadipmukherjee'
 import random
 import numpy
+import math
 
 def readFastq(filename, filename2):
     """
@@ -221,8 +222,48 @@ def produceAbundanceMatrix(reads, k_length, h_size):
         kmers = r_obj["kmer_vectors"]
         kmerMatrix = produceKmerMatrix(kmers, k_length)
         RMatrix = numpy.dot(randomVectorMatrix , kmerMatrix)
+
         print RMatrix
-        print RMatrix.size
+        shape  = RMatrix.shape
+
+        for x in range(0, shape[1]):
+            col = RMatrix[:,x]
+            normalized = math.sqrt(sum(col**2))
+            cosine = col/normalized
+            #print cosine
+            newCol = []
+            for c in cosine:
+                if c < -1 or c>1:
+                    print (x)
+                    print col
+                    print c
+                theta = numpy.arccos(c)
+                if theta < (math.pi/2):
+                    newCol.append(1)
+                else:
+                    newCol.append(0)
+            RMatrix[:,x] = newCol
+
+            #print [numpy.arccos(x) for x in cosine]
+            #[1 if (numpy.arccos(x_i) < (math.pi/2)) else 0 for x_i in cosine]
+        #print RMatrix[1:]
+        # print "#"*100
+        # col = RMatrix[:,1]
+        # print "#"*100
+        # print col
+        # normalized =  math.sqrt(sum(col ** 2))
+        # x = col/normalized
+        # n_x = []
+        # print x
+        # for x_i in x:
+        #     theta = numpy.arccos(x_i)
+        #     if(theta <  (math.pi/2)):
+        #         n_x.append(1)
+        #     else:
+        #         n_x.append(0)
+        # print n_x
+        #print numpy.arccos(x)
+        print RMatrix
     return
 
 def prettyPrintObject(sequences):
