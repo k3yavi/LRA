@@ -220,7 +220,8 @@ def produceKmerMatrix(kmers, k_length):
 
 def produceAbundanceMatrix(reads, k_length, h_size):
     randomVectorMatrix = produceRandomMatrix(generateNRandomVectors(h_size, k_length), k_length )
-    abundanceMatrix = numpy.zeros((len(reads),2**h_size), dtype=numpy.int32)
+    abundanceMatrix = []
+    #abundanceMatrix = numpy.zeros((len(reads),2**h_size), dtype=numpy.int32)
     #print randomVectorMatrix
     #print randomVectorMatrix.shape
     bitVector = []
@@ -232,6 +233,7 @@ def produceAbundanceMatrix(reads, k_length, h_size):
         print "Reading another one...", str(read_index)
         kmers = r_obj["kmer_vectors"]
         kmerMatrix = produceKmerMatrix(kmers, k_length)
+
         #print kmerMatrix
         #print kmerMatrix.shape
         #RMatrix = numpy.dot(randomVectorMatrix , kmerMatrix)
@@ -268,24 +270,23 @@ def produceAbundanceMatrix(reads, k_length, h_size):
 
 
         #print readIndices
+        kmer_count = {}
         for index in readIndices:
-            abundanceMatrix[read_index][index] += 1
+            if(index in kmer_count.keys()):
+                kmer_count[index] += 1
+            else:
+                kmer_count[index] = 1
+        kmer_list = []
+        for k,v in kmer_count.iteritems():
+            kmer_list.append((k,v))
+        abundanceMatrix.append(set(kmer_list))
+
+        #abundanceMatrix[read_index][index] += 1
 
         read_index+=1
     print "Done Reading DAMM FILES"
-    #file = open('avi.txt', 'w')
-    for i in range(0, len(reads)):
-        j = 0
-        print "Doing Read: ", str(i)
-        while j < (2**h_size):
-            if abundanceMatrix[i][j] != 0:
-                print abundanceMatrix[i][j]
-                print i, j
-                print "#"*3
-            if( j %100 == 0):
-                print "Column: ", str(j)
-            j +=1
-
+    #print abundanceMatrix
+    return abundanceMatrix
     # file.write(str(abundanceMatrix))
     # file.close()
 
@@ -335,6 +336,26 @@ def produceAbundanceMatrix(reads, k_length, h_size):
     #         print abundanceMatrix[i][j],
     #     print
     # return
+
+
+
+def makeClusters(aMatrix):
+    clusters = {}
+    row_index = 0
+    for row in aMatrix:
+        binIndices = [b[0] for b in row ].sort()
+        if(binIndices in clusters.keys()):
+            clusters[binIndices].append(row_index)
+        else:
+            clusters[binIndices] = [row_index]
+        row_index+=1
+    return clusters
+
+
+
+
+
+
 
 
 def prettyPrintObject(sequences):

@@ -53,7 +53,11 @@ def loc_hash(kmer_size, hash_size, file1, file2):
     reads = readFastq(file1, file2)
     buildKmerListForReads(reads, kmer_size)
     translateKmerList(reads)
-    print reads
+    abundanceMatrix = produceAbundanceMatrix(reads, kmer_size, hash_size)
+    clusters = makeClusters(abundanceMatrix)
+    print len(clusters)
+    print clusters
+    #print reads
     #pass
 
 
