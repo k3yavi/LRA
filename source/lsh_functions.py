@@ -26,75 +26,77 @@ def readFastq(filename, filename2):
         'N' :'N',
         'n': 'N'
     }
-    with open(filename) as fh:
-        with open(filename2) as fh2:
-            while True:
-                read_obj = {
-                    "id": None,
-                    #"seq": None,
-                    #"rev_comp_seq": None
-                    "mate1":None,
-                    "mate2":None
-                }
-                #Do all of the reading here. READ FOUR lines for each READ
-                id = fh.readline().rsplit() #read the id
-                id_2= fh2.readline().rsplit()
-                seq = fh.readline().rstrip() #read base sequence
-                seq_2 = fh2.readline().rstrip()
-                fh.readline() # skip placeholder line
-                fh.readline() # base quality line
-                fh2.readline()
-                fh2.readline()
-                #End of Reading here
+    fh = filename
+    fh2 = filename2
+    #with open(filename) as fh:
+    #    with open(filename2) as fh2:
+    while True:
+        read_obj = {
+            "id": None,
+            #"seq": None,
+            #"rev_comp_seq": None
+            "mate1":None,
+            "mate2":None
+        }
+        #Do all of the reading here. READ FOUR lines for each READ
+        id = fh.readline().rsplit() #read the id
+        id_2= fh2.readline().rsplit()
+        seq = fh.readline().rstrip() #read base sequence
+        seq_2 = fh2.readline().rstrip()
+        fh.readline() # skip placeholder line
+        fh.readline() # base quality line
+        fh2.readline()
+        fh2.readline()
+        #End of Reading here
 
-                if len(seq) == 0 or len(seq_2)== 0:
-                    break
-                #Make the mates upper case
-                seq = seq.upper()
-                seq_2 = seq_2.upper()
+        if len(seq) == 0 or len(seq_2)== 0:
+            break
+        #Make the mates upper case
+        seq = seq.upper()
+        seq_2 = seq_2.upper()
 
-                #Store the mate ids in the structure to retun
-                read_obj["mate1_id"] = id[0] # skip name line
-                read_obj["mate2_id"] = id_2[0]
+        #Store the mate ids in the structure to retun
+        read_obj["mate1_id"] = id[0] # skip name line
+        read_obj["mate2_id"] = id_2[0]
 
-                #produce the id of the Reads by removing the las part
-                end =read_obj["mate1_id"].rindex(':')#get the last index of the colon
-                read_obj["id"] = read_obj["mate1_id"][:end]
+        #produce the id of the Reads by removing the las part
+        end =read_obj["mate1_id"].rindex(':')#get the last index of the colon
+        read_obj["id"] = read_obj["mate1_id"][:end]
 
-                #store the length of mate1 so we do kmer has over the bridge of mate1 and mate2
-                read_obj["mate1_len"] = len(seq)
-
-
-                #construct Read1
-                #Reverse complement mate2 and concatenat it to mate1
-                reverse_2 = seq_2[::-1]
-                reverse_comp_r2=""
-                for x in range(0, len(reverse_2)):
-                    try:
-                        reverse_comp_r2 += compMapping[reverse_2[x]]
-                    except KeyError as e:
-                        #print e
-                        continue
-                mate1 = seq + reverse_comp_r2
-
-                read_obj["read1"] = mate1
+        #store the length of mate1 so we do kmer has over the bridge of mate1 and mate2
+        read_obj["mate1_len"] = len(seq)
 
 
-                #construct Read2
-                #Reverse complement mate1 and concatenate it with mate2
-                reverse_1 = seq[::-1]
-                reverse_comp_r1= ""
-                for x in range(0, len(reverse_1)):
-                    try:
-                        reverse_comp_r1 += compMapping[reverse_1[x]]
-                    except KeyError as e:
-                        #print e
-                        continue
+        #construct Read1
+        #Reverse complement mate2 and concatenat it to mate1
+        reverse_2 = seq_2[::-1]
+        reverse_comp_r2=""
+        for x in range(0, len(reverse_2)):
+            try:
+                reverse_comp_r2 += compMapping[reverse_2[x]]
+            except KeyError as e:
+                #print e
+                continue
+        mate1 = seq + reverse_comp_r2
 
-                mate2 = reverse_comp_r1 + seq_2
+        read_obj["read1"] = mate1
 
-                read_obj["read2"] = mate2
-                sequences.append(read_obj)
+
+        #construct Read2
+        #Reverse complement mate1 and concatenate it with mate2
+        reverse_1 = seq[::-1]
+        reverse_comp_r1= ""
+        for x in range(0, len(reverse_1)):
+            try:
+                reverse_comp_r1 += compMapping[reverse_1[x]]
+            except KeyError as e:
+                #print e
+                continue
+
+        mate2 = reverse_comp_r1 + seq_2
+
+        read_obj["read2"] = mate2
+        sequences.append(read_obj)
     return sequences
 def buildKmerListForReads(reads, k_length):
     for r_obj in reads:
@@ -353,23 +355,23 @@ def prettyPrintObject(sequences):
 
 #rettyPrintObject(readFastq("r1_short.fq", "r2_short.fq"))
 
-r = readFastq("r1_short.fq", "r2_short.fq")
-print "Finished reading files"
-#print r
-# prettyPrintObject(r)
-buildKmerListForReads(r, 33)
-print "Finished building kmwe List for each read"
-
+# r = readFastq("r1_short.fq", "r2_short.fq")
+# print "Finished reading files"
 # #print r
+# # prettyPrintObject(r)
+# buildKmerListForReads(r, 33)
+# print "Finished building kmwe List for each read"
 #
-translateKmerList(r)
-print "Finished Translating kmer list"
-# print r
-
-#randomVecs = generateNRandomVectors(10, 4)
-
-#produceRandomMatrix(randomVecs, 4)
-produceAbundanceMatrix(r, 33, 29)
+# # #print r
+# #
+# translateKmerList(r)
+# print "Finished Translating kmer list"
+# # print r
+#
+# #randomVecs = generateNRandomVectors(10, 4)
+#
+# #produceRandomMatrix(randomVecs, 4)
+# produceAbundanceMatrix(r, 33, 29)
 
 
 #print translateKmer("ATCG")
