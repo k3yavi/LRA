@@ -3,6 +3,7 @@ import random
 import numpy
 import math
 
+
 def readFastq(filename, filename2):
     """
     Parse read and quality strings from a FASTQ file with sequencing reads.
@@ -217,54 +218,122 @@ def produceKmerMatrix(kmers, k_length):
 
 def produceAbundanceMatrix(reads, k_length, h_size):
     randomVectorMatrix = produceRandomMatrix(generateNRandomVectors(h_size, k_length), k_length )
-    print randomVectorMatrix
+    abundanceMatrix = numpy.zeros((len(reads),2**h_size), dtype=numpy.int32)
+    #print randomVectorMatrix
+    #print randomVectorMatrix.shape
+    bitVector = []
+    l_i = []
+    g_j = []
+    MAX_CONSTANT_32 = 4294967295.0
+    read_index = 0
     for r_obj in reads:
+        print "Reading another one...", str(read_index)
         kmers = r_obj["kmer_vectors"]
         kmerMatrix = produceKmerMatrix(kmers, k_length)
-        RMatrix = numpy.dot(randomVectorMatrix , kmerMatrix)
-
-        print RMatrix
-        shape  = RMatrix.shape
-
-        for x in range(0, shape[1]):
-            col = RMatrix[:,x]
-            normalized = math.sqrt(sum(col**2))
-            cosine = col/normalized
+        #print kmerMatrix
+        #print kmerMatrix.shape
+        #RMatrix = numpy.dot(randomVectorMatrix , kmerMatrix)
+        RMatrix = [[sum(a*b for a,b in zip(X_row,Y_col)) for Y_col in zip(*kmerMatrix)] for X_row in randomVectorMatrix]
+        #print RMatrix
+        # shape  = RMatrix.shape
+        #print shape
+        for x in range(0, len(RMatrix[0])):
+            col = [i[x] for i in RMatrix]
+            #print col
+            normalized = math.sqrt(sum([y ** 2  for y in col]))
+            #print normalized
+            cosine = [y/normalized for y in col]
+            # print cosine
+            #print "Normalized", str(normalized)
             #print cosine
             newCol = []
             for c in cosine:
                 if c < -1 or c>1:
-                    print (x)
-                    print col
-                    print c
+                    print "error"
                 theta = numpy.arccos(c)
+                # print theta
                 if theta < (math.pi/2):
                     newCol.append(1)
                 else:
                     newCol.append(0)
-            RMatrix[:,x] = newCol
+            bitVector.append(newCol)
+        readIndices = []
+        for vec in bitVector:
+            str_rep = ""
+            for i in vec:
+                str_rep += str(i)
+            readIndices.append(int(str_rep, 2))
 
-            #print [numpy.arccos(x) for x in cosine]
-            #[1 if (numpy.arccos(x_i) < (math.pi/2)) else 0 for x_i in cosine]
-        #print RMatrix[1:]
-        # print "#"*100
-        # col = RMatrix[:,1]
-        # print "#"*100
-        # print col
-        # normalized =  math.sqrt(sum(col ** 2))
-        # x = col/normalized
-        # n_x = []
-        # print x
-        # for x_i in x:
-        #     theta = numpy.arccos(x_i)
-        #     if(theta <  (math.pi/2)):
-        #         n_x.append(1)
-        #     else:
-        #         n_x.append(0)
-        # print n_x
-        #print numpy.arccos(x)
-        print RMatrix
-    return
+
+        #print readIndices
+        for index in readIndices:
+            abundanceMatrix[read_index][index] += 1
+
+        read_index+=1
+    print "Done Reading DAMM FILES"
+    #file = open('avi.txt', 'w')
+    for i in range(0, len(reads)):
+        j = 0
+        print "Doing Read: ", str(i)
+        while j < (2**h_size):
+            if abundanceMatrix[i][j] != 0:
+                print abundanceMatrix[i][j]
+                print i, j
+                print "#"*3
+            if( j %100 == 0):
+                print "Column: ", str(j)
+            j +=1
+
+    # file.write(str(abundanceMatrix))
+    # file.close()
+
+    # print abundanceMatrix[0][0]
+    # for i in range (0, len(reads)):
+    #     for j in range(0, 2**h_size):
+    #         print str(i), str(j)
+    #         #print abundanceMatrix[i][j]
+    #     print
+    #     print
+    # print "DONE"
+    # for i in range(0,len(reads)):
+    #     r_hits = []
+    #     for j in range(0,2**h_size):
+    #         if abundanceMatrix[i][j] != 0:
+    #             r_hits.append(abundanceMatrix[i][j])
+    #     #print sum(c_hits)
+    #     l_i.append(math.sqrt(sum(r_hits))/(2**h_size))
+    #
+    #print l_i
+    # print "DONE1"
+    # for j in range(0,2**h_size):
+    #     col_hit_count = 0
+    #     for i in range(0,len(reads)):
+    #         if abundanceMatrix[i][j] != 0:
+    #             col_hit_count+=1
+    #     if col_hit_count == 0:
+    #         g_j.append(MAX_CONSTANT_32)
+    #     else:
+    #         g_j.append(math.log((len(reads)/col_hit_count),2))
+    #         #print
+    # #print g_j
+    # print "DONE2"
+    # #print l_i
+    # for i in range(0, len(reads)):
+    #     for j in range(0, 2**h_size):
+    #         #print abundanceMatrix[i][j], g_j[j], l_i[i]
+    #         if(abundanceMatrix[i][j] > 100):
+    #             print "HERE"
+    #             print g_j[j], l_i[i]
+    #         abundanceMatrix[i][j]*= (g_j[j]/l_i[i])
+    #
+    # #print abundanceMatrix[0][readIndices[len(readIndices) -1]]
+    # print "DONE3"
+    #for i in range (0, len(reads)):
+    #     for j in range(0, 2**h_size):
+    #         print abundanceMatrix[i][j],
+    #     print
+    # return
+
 
 def prettyPrintObject(sequences):
     for x in sequences:
@@ -284,18 +353,23 @@ def prettyPrintObject(sequences):
 
 #rettyPrintObject(readFastq("r1_short.fq", "r2_short.fq"))
 
-r = readFastq("r1_test.fq", "r2_test.fq")
+r = readFastq("r1_short.fq", "r2_short.fq")
+print "Finished reading files"
 #print r
 # prettyPrintObject(r)
-buildKmerListForReads(r, 4)
+buildKmerListForReads(r, 33)
+print "Finished building kmwe List for each read"
+
 # #print r
 #
 translateKmerList(r)
+print "Finished Translating kmer list"
 # print r
 
 #randomVecs = generateNRandomVectors(10, 4)
 
 #produceRandomMatrix(randomVecs, 4)
-produceAbundanceMatrix(r, 4, 10)
+produceAbundanceMatrix(r, 33, 29)
+
 
 #print translateKmer("ATCG")
