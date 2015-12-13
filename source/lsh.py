@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import numpy
+#import numpy
 from collections import namedtuple
 from lsh_functions import *
-
+#import gc
 """
 Locality Sensitive Hash (LSH).
 """
@@ -15,7 +15,7 @@ defaults = Defaults(kmer_size=35, hash_size=20)
 
 def main():
     args = parse_args()
-    print "HERE"
+    #print "HERE"
     # Hash input files.
     matrix = loc_hash(args.kmer_size, args.hash_size, args.file1, args.file2)
     # Pass matrix to gensim.models.LsiModel
@@ -48,18 +48,14 @@ def loc_hash(kmer_size, hash_size, file1, file2):
     :param file2: FASTQ file 2 of paired end reads.
     :return: Numpy matrix/gensim corpus to pass to gensim?
     """
-    print file1
-    print file2
-    reads = readFastq(file1, file2)
-    buildKmerListForReads(reads, kmer_size)
-    translateKmerList(reads)
+    #print file1
+    #print file2
+    #gc.disable()
+    reads = readFastq(file1, file2, kmer_size)
+    #buildKmerListForReads(reads, kmer_size)
+    #translateKmerList(reads)
     abundanceMatrix = produceAbundanceMatrix(reads, kmer_size, hash_size)
-    clusters = makeClusters(abundanceMatrix)
-    print len(clusters)
-    print clusters
-    #print reads
-    #pass
-
+    clusters = makeClusters(abundanceMatrix, reads)
 
 if __name__ == '__main__':
     main()
