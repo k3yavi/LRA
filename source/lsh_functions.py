@@ -94,7 +94,7 @@ def produceKmerMatrix(kmers, k_length):
     kmerMatrix = np.zeros((k_length, len(kmers)), dtype=object)
     for kindex, kmer in enumerate(kmers):
         for ntindex, val in enumerate(kmer):
-            kmerMatrix[ntindex][kindex] = translate_table[val]
+            kmerMatrix[kindex][ntindex] = translate_table[val]
     return kmerMatrix
 
 
