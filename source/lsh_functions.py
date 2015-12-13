@@ -91,7 +91,7 @@ def generateNRandomVectors(n, k_length):
 
 
 def produceKmerMatrix(kmers, k_length):
-    kmerMatrix = np.zeros((k_length, len(kmers)), dtype=object)
+    kmerMatrix = np.zeros((len(kmers), k_length), dtype=object)
     for kindex, kmer in enumerate(kmers):
         for ntindex, val in enumerate(kmer):
             kmerMatrix[kindex][ntindex] = translate_table[val]
@@ -129,10 +129,10 @@ def produceAbundanceMatrix(reads, k_length, h_size):
 
         #print kmerMatrix.shape
         #RMatrix = np.dot(randomVectorMatrix, kmerMatrix)
-        RMatrix = np.zeros((randomVectorMatrix.shape[0], kmerMatrix.shape[1]), dtype=np.str)
+        RMatrix = np.zeros((randomVectorMatrix.shape[0], kmerMatrix.shape[0]), dtype=np.str)
 
         for i in xrange(RMatrix.shape[0]):
-            for j in xrange(RMatrix.shape[0]):
+            for j in xrange(RMatrix.shape[1]):
                 RMatrix[i, j] = multiplyVec(randomVectorMatrix[i, :], kmerMatrix[j, :])
 
         for x in range(0, RMatrix.shape[1]):
