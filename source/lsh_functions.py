@@ -71,30 +71,22 @@ def readFastq(filename, filename2, k_length):
         sequences.append(read_obj)
     return sequences
 
-
+#function will generate N random kmers of length k_length and return the random elements
+ #in and array
 def generateNRandomVectors(n, k_length):
-    """
-    Generate n random kmers of length k_length. The matrix will actually
-    be n x (2 * k_length).
-    :return: the random elements in an array
-    """
-    #k_length *= 2
     listOfOptions = [(1, 0), (-1, 0), (0, 1),  (0, -1)]
     random_vectors = np.zeros((n, k_length), dtype=object)
 
     for x in range(0, n):
-        for y in range(0, k_length): #, 2):
+        for y in range(0,k_length):
             random_vectors[x][y] = random.choice(listOfOptions)
-            # random_vectors[x][y] = val[0]
-            # random_vectors[x][y + 1] = val[1]
     return random_vectors
 
-
 def produceKmerMatrix(kmers, k_length):
-    kmerMatrix = np.zeros((len(kmers), k_length), dtype=object)
+    kmerMatrix = np.zeros((k_length, len(kmers)), dtype=object)
     for kindex, kmer in enumerate(kmers):
         for ntindex, val in enumerate(kmer):
-            kmerMatrix[kindex][ntindex] = translate_table[val]
+            kmerMatrix[ntindex][kindex] = translate_table[val]
     return kmerMatrix
 
 
@@ -129,11 +121,11 @@ def produceAbundanceMatrix(reads, k_length, h_size):
 
         #print kmerMatrix.shape
         #RMatrix = np.dot(randomVectorMatrix, kmerMatrix)
-        RMatrix = np.zeros((randomVectorMatrix.shape[0], kmerMatrix.shape[0]), dtype=np.str)
+        RMatrix = np.zeros((randomVectorMatrix.shape[0], kmerMatrix.shape[1]), dtype=np.str)
 
         for i in xrange(RMatrix.shape[0]):
             for j in xrange(RMatrix.shape[1]):
-                RMatrix[i, j] = multiplyVec(randomVectorMatrix[i, :], kmerMatrix[j, :])
+                RMatrix[i, j] = multiplyVec(randomVectorMatrix[i, :], kmerMatrix[:, j].transpose())
 
         for x in range(0, RMatrix.shape[1]):
             bitVector.append(''.join(RMatrix[:, x]))
