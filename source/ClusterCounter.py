@@ -7,21 +7,20 @@ defaults = Defaults(count=1)
 def main():
     args = parse_args()
     print args
-    one_c, t_c = countClusters(args.file1)
-    print one_c
-    print t_c
+    one_c, t_c = countClusters(args.file1, args.count)
+    print "Clusters with less then "+str(args.count+ 1)+" reads: " + str(one_c)
+    print "Total clusters: " + str(t_c)
     return
-def countClusters(clusters):
+def countClusters(clusters, count_min ):
     print clusters
     count = 0
     runcount = 0
     cluster_with_one = 0;
     while True:
         r = clusters.readline()
-        if r == '\n' or len(r) == 1:
+        if r == '\n':
             count+=1
-
-            if runcount == 1:
+            if runcount <= count_min:
                 cluster_with_one += 1
             runcount=0
         else:
