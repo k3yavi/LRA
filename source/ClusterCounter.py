@@ -6,7 +6,7 @@ defaults = Defaults(count=1)
 
 def main():
     args = parse_args()
-    print args
+    #print args
     one_c, t_c = countClusters(args.file1, args.count)
     print "Clusters with less then "+str(args.count+ 1)+" reads: " + str(one_c)
     print "Total clusters: " + str(t_c)
