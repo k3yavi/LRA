@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on ......... Mon Nov 30 22:42:01 2015
@@ -8,6 +7,7 @@ Three-step-clustering implementation.
 
 @author: Caleb Andrade
 """
+
 import time
 from HierarchicalKmeans import *
 from LocalitySensitive import *
@@ -17,22 +17,25 @@ from matplotlib import pyplot as plt
 
 def main():
     args = parse_args()
-    #reads = readFastq('ERR037900_1.first1000.fastq')[0]
-    #reads = readFastq('ERR266411_1.for_asm.fastq')[0]
-    reads = readFastq(args.infile)[0]
-
+    reads = readFastq(args.infile, 10000)
+    
+    # parameters
     N = len(reads)
+    min_bucket_size = 3
+    kmeans_loops = 10
+    error_t = 25 # error threshold (standard deviation)
+        
     # first stage
-    initial_clusters, k = firstStep(reads, 4, N)
-    del reads # no need to keep this list of initial reads
+    initial_clusters, k = firstStage(reads, min_bucket_size, N)
+    del reads
     
     # second stage
-    clusters = secondStep(initial_clusters, k, N, 1)
+    clusters = secondStage(initial_clusters, k, N, kmeans_loops)
     del initial_clusters
 
     # third stage
-    new_clusters = thirdStep(clusters, N, 25)
-    
+    new_clusters = thirdStage(clusters, N, error_t)
+
     # write clusters to file
     fileClusters(new_clusters)
 
@@ -57,12 +60,12 @@ def statMeasures(values):
     return average, (float(sum(variance)) / (len(values) - 1))**0.5
     
 
-def firstStep(reads, min_bucket_size, n):
+def firstStage(reads, min_bucket_size, n):
     """
     Compute LSH for reads/kmers. Hash = concatenation of random primitive hashes.
         
-    Input: list of reads/kmers, minimum size of buckets.
-    Output: list of clustered reads (as Cluster objects)
+    Input: list of reads/kmers, minimum size of buckets, number of reads.
+    Output: list of clustered reads/kmers (as Cluster objects)
     """
     print "\n******************************************************************"
     print "\n        F I R S T  S T A G E: LOCALITY-SENSITIVE HASHING "
@@ -81,8 +84,6 @@ def firstStep(reads, min_bucket_size, n):
         # append cluster sizes to histogram that are above a given threshold
         if min_bucket_size < len(bucket):
             # discard cluster sizes for histogram that are > 1% of total reads
-            # This clusters will be indeed part of the k initial clusters
-            # but we don't count them for purposes of size average and std. dev.
             if len(bucket) < n*0.01: 
                 histogram.append(len(bucket))
             else:
@@ -95,23 +96,24 @@ def firstStep(reads, min_bucket_size, n):
         if value < avg + 2*std_dev:
             break
         k += 1 # increase the number of k clusters
-           
+        
     print "\nTotal number of reads : ", n
     print "Number of clusters:     ", len(clusters)
     print "Running time:           ", round(toc-tic, 2), " s"
     print "k: ", k
     print "\nCluster size average and std dev: ", round(avg, 2),", ", round(std_dev, 2)
     plt.plot(histogram)
+    plt.show()
             
     return clusters, k
 
 
-def secondStep(cluster_list, k, n, loops):
+def secondStage(cluster_list, k, n, loops):
     """
-    Second stage: apply kmeans clustering using k initialized 
-    clusters in first stage.
+    Second stage: apply kmeans clustering using k largest
+    clusters from first stage.
     
-    Input: list of clusters, number of initial clusters, total reads,
+    Input: list of clusters, number of k clusters, total number of reads,
     number of kmeans loops.
     Output: list of Cluster objects.
     """
@@ -126,13 +128,12 @@ def secondStep(cluster_list, k, n, loops):
     return clusters
     
     
-def thirdStep(clusters, n, error_t):
+def thirdStage(clusters, n, error_t):
     """
-    Third stage of clustering: after kmeans we obtain k clusters, hierarchical
-    clustering looks if it is possible to further merge this clusters but
-    without incurring in a error threshold. Running time is O(k^2).
+    After kmeans we obtain k clusters, in this stage, we attempt
+    to further merge clusters, but without surpassing an error threshold. 
     
-    Input: list of clusters, total reads, error threshold.
+    Input: list of clusters, total number of reads, error threshold.
     Output: list of cluster objects.
     """        
     print "\n        T H I R D  S T A G E: HIERARCHICAL-CLUSTERING"
@@ -162,4 +163,3 @@ def fileClusters(cluster_list):
 
 if __name__ == '__main__':
     main()
-
