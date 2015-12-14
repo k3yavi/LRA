@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Wed Nov 25 23:35:58 2015
-Last modified on ... Mon Nov 30 23:52:44 2015
+Last modified on ... Mon Dec 14 02:32:44 2015
 
-Locality-Sensitive Hashing applied to cluster RNA/DNA reads/kmers.
+Locality-Sensitive Hashing applied to cluster RNA/DNA reads.
 
 @author: Caleb Andrade.
 """
@@ -22,80 +22,58 @@ UNARY_MAP = {'A':'1000',
              'n':'0000'}
              
 
-def kmerHashMap(reads, k):
+def unaryMap(read):
     """
-    Create a hash map between kmers and readings. 
-    Note: Keys are kmers. Values are sets of those reads containing them.
+    Map read to a unary representation.
     
-    Input: list of reads, length of kmers.
-    Output: hash map.
-    """
-    kmers_dict = {}
-    # loop through all reads
-    for i in range(len(reads)):
-        # loop read's bases, except for the last k, to obtain its kmers
-        for j in range(1+len(reads[i])-k):
-            kmer = reads[i][j:k+j]
-            if kmers_dict.has_key(kmer):
-                kmers_dict[kmer].add(i)
-            else:
-                kmers_dict[kmer] = set([i])
-    
-    return kmers_dict
-    
-
-def unaryMap(kmer):
-    """
-    Map kmer/read to a unary representation.
-    
-    Input: kmer/read.
-    Output: concatenation of unary maps of kmer/read's bases.
+    Input: read.
+    Output: concatenation of unary maps of read's bases.
     """
     bit_vector = ''
-    for base in kmer:
+    for base in read:
         bit_vector += UNARY_MAP[base]
+    
     return bit_vector
     
 
 def simHash(bit_vector, ran_numbers):
     """
-    Similarity hash.
-    
     Input: bit vector, sorted list of k random numbers.
-    Output: simHash index.
+    Output: similarity hash bin index.
     """
     ans = ''
     for num in ran_numbers:
         # prevent an error if num is out of range for bit_vector
         if num < len(bit_vector):
             ans += bit_vector[num]
+    
     return ans
     
 
 def hashLSH(reads, ran_numbers):
     """
-    Build the similarity hash table according to the given indices.
+    Build the similarity hash according to the given indices.
     
-    Input: set of kmers/reads (ID, 'ACCTGCA...'), list of random integers.
-    Output: kmer/read similarity hash map.
+    Input: list of reads (ID, 'ACCTGCA...'), list of random integers.
+    Output: reads' similarity hash map.
     """
     hashMap = {}
     for read in reads:
-        temp = simHash(unaryMap(read[1]), ran_numbers)
-        if hashMap.has_key(temp):
-            hashMap[temp].append(read)
+        index = simHash(unaryMap(read[1]), ran_numbers)
+        if hashMap.has_key(index):
+            hashMap[index].append(read)
         else:
-            hashMap[temp] = [read]
+            hashMap[index] = [read]
+    
     return hashMap
 
 
-def compress(bucket):
+def consensus(bucket):
     """
-    Compute the best representative read/kmer of a bucket,
-    so that the bucket is "compressed" to a single read/kmer.
+    Compute the consensus of a bucket of reads.
     
     Input: Bucket of raw reads as strings.
-    Output: Average read (best representative) as string.
+    Output: Majority vote read as string.
     """
     acgt = {0:'A', 1:'C', 2:'G', 3:'T'}
     sumVector = 4*len(bucket[0])*[0]

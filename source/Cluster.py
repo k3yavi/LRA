@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on ........ Thu Nov 12 12:39:23 2015
-Last modified on .. Thu Nov 19 23:18:39 2015
+Last modified on .. Sun Dec 13 17:57:46 2015
+
 Cluster class and its helper functions for RNA/DNA reads clustering.
+
 @author: Caleb Andrade
 """
 
@@ -12,68 +14,55 @@ DIM = 1
 #******************************************************************************
 # HELPER FUNCTIONS
 #******************************************************************************
-def statsVectors(reads):
+def codonAbundance(reads):
     """
-    This function creates a list of stats (features) vectors, one per read 
-    in 'reads'. Each stats vector is defined as:
-    
-    (#A's, #C's, #G's, #T's, d(A's), d(C's), d(G's), d(T's), #switches, errors)
-    
-        * By # A's we mean the total number of A's in the read.
-        * By d(A's) we mean the total number of positions in between A's.
-        * By #switches we mean the total number of base alternations in a read.
-        * By errors we mean the number of undefined 'N' bases in a read.
-        
-    With this information we can encode a read as a 10-tuple, so that the
-    manhattan/euclidean metrics can be used in a 10-dimensional space to
-    measure closeness of the features encoded in the stats vector of any 
-    two reads.
+    Create a list of codon abundance vectors of reads.
     """
-    stats_vectors = []
+    # codon abundance vectors list    
+    abundance_vectors = []
+    
+    # disambiguation hash for lower/upper case bases
+    base_map = {'a':'A', 'c':'C', 'g':'G', 't':'T', 'n':'N',
+                'A':'A', 'C':'C', 'G':'G', 'T':'T', 'N':'N'}
+    
+    # codon hash, map codons to abundance codon vector indices
+    codon_map = {'AAA':0, 'AAC':1, 'AAG':2, 'AAT':3,
+             'ACA':4, 'ACC':5, 'ACG':6, 'ACT':7,
+             'AGA':8, 'AGC':9, 'AGG':10, 'AGT':11,
+             'ATA':12, 'ATC':13, 'ATG':14, 'ATT':15,
+             'CAA':16, 'CAC':17, 'CAG':18, 'CAT':19,
+             'CCA':20, 'CCC':21, 'CCG':22, 'CCT':23,
+             'CGA':24, 'CGC':25, 'CGG':26, 'CGT':27,
+             'CTA':28, 'CTC':29, 'CTG':30, 'CTT':31,
+             'GAA':32, 'GAC':33, 'GAG':34, 'GAT':35,
+             'GCA':36, 'GCC':37, 'GCG':38, 'GCT':39,
+             'GGA':40, 'GGC':41, 'GGG':42, 'GGT':43,
+             'GTA':44, 'GTC':45, 'GTG':46, 'GTT':47,
+             'TAA':48, 'TAC':49, 'TAG':50, 'TAT':51,
+             'TCA':52, 'TCC':53, 'TCG':54, 'TCT':55,
+             'TGA':56, 'TGC':57, 'TGG':58, 'TGT':59,
+             'TTA':60, 'TTC':61, 'TTG':62, 'TTT':63}
+             
     for read in reads:
-        # initialize read's counters of each base
-        count = {'A':0, 'C':0, 'G':0, 'T':0}
-        # disambiguation hash for lower/upper case of bases
-        base_map = {'a':'A', 'c':'C', 'g':'G', 't':'T', 'n':'N',
-                    'A':'A', 'C':'C', 'G':'G', 'T':'T', 'N':'N'}
-        # 'A':[a, b]: a = distance in between A's, b = index of last 'A'
-        dist = {'A':[0, None], 'C':[0, None], 'G':[0, None], 'T':[0, None]}
-        num_switch = 0 # counter to keep track of alternation of bases
-        prev_base = ''
-        index = 0 # to indicate current's base index
-        errors = 0 # number of N's in the read
-        # loop through read's bases 
-        for item in read:
-            base = base_map[item] 
-            # update number of switches
-            if base != prev_base:
-                num_switch += 1
-                prev_base = base
-            # if an 'N' appears, we skip it
-            if base == 'N':
-                index += 1
-                errors += 1
-                continue
-            # update number of bases
-            count[base] += 1
-            # update distance in between same bases
-            if dist[base][1] != None:
-                dist[base][0] += index - dist[base][1] - 1
-            dist[base][1] = index
-            index += 1
-        stats_vectors.append((count['A'], count['C'], count['G'], count['T'],
-                        dist['A'][0], dist['C'][0], dist['G'][0], dist['T'][0],
-                        num_switch - 1, errors))
-    return stats_vectors
+        codon_vector = 64*[0]
+        for i in range(1 + len(read) - 3):
+            cod0 = base_map[read[i]]
+            cod1 = base_map[read[i+1]]
+            cod2 = base_map[read[i+2]]
+            # ignore a codon with 'N'
+            if cod0 != 'N' and cod1 != 'N' and cod2 != 'N':
+                cod = cod0 + cod1 + cod2
+                codon_vector[codon_map[cod]] += 1
+                
+        abundance_vectors.append(codon_vector)
+        
+    return abundance_vectors
     
 
 def distance(vector_a, vector_b, dim = DIM):
         """
         Compute Minkowski's distance between two vectors.
         Note: dim = 1, then manhattan distance; dim = 2 then euclidean.
-        
-        Input: two tuples with real values as entries.
-        Output: Minkowski's distance between vector_a and vector_b.
         """
         distance = 0
         
@@ -82,6 +71,7 @@ def distance(vector_a, vector_b, dim = DIM):
         
         if dim == 1:
             return distance
+        
         return distance**(1 / float(dim))
 
 #******************************************************************************
@@ -89,38 +79,33 @@ def distance(vector_a, vector_b, dim = DIM):
 #******************************************************************************
 class Cluster(object):
     """
-    Class to model RNA/DNA reads clustering. The class itself does not 
-    store reads, but rather tuple representations of them, namely, the 
-    average of their stats vector. The stats vector description is found
-    in the 'statsVectors' function's comment.
+    Class to model RNA/DNA reads clusters. The object itself does not 
+    store reads, but rather, an euclidean embedding, namely, the average
+    of their codon abundance vectors. 
     """
     
     def __init__(self, reads = []):
         """
-        Initializes a Cluster object for DNA/RNA reads.
-        
-        Input: a list of 'reads', empty by default. Each read in 'reads' 
-        is assumed to be a tuple as follows: (ID, 'ACGTCAG...').
-        Note: each ID should be unique.
+        Input: a list of reads, empty by default. Each read is assumed to 
+        be a tuple as follows: (ID, 'ACGTCAG...'). Each ID should be unique.
         """
-        self.sum_stats_vectors = 10*[0] # total sum of stats vectors
-        self.avg_stats_vectors = 10*[0] # average of stats vectors
+        self.sum_abundance_vectors = 64*[0] # coordinate-wise sum of abundance vectors
+        self.avg_abundance_vectors = 64*[0] # average of abundance vectors
         self.reads_IDs = set([]) # IDs of reads in cluster
-        self.stats_vectors = []
-        self.weight = 0
+        self.abundance_vectors = []
                 
         if reads != []:
-            # create stats vectors and loop through them
-            self.stats_vectors = statsVectors([read[1] for read in reads])
-            for item in self.stats_vectors:
-                # loop through every entry of a stats vector
-                for idx in range(10):
-                    # update cluster's sum stats vector
-                    self.sum_stats_vectors[idx] += item[idx]
-                self.weight += sum(item[0:4])
+            # create abundance vectors and loop them
+            self.abundance_vectors = codonAbundance([read[1] for read in reads])
+            for i in range(len(self.abundance_vectors)):
+                item = self.abundance_vectors[i]
+                # loop through every entry of an abundance vector
+                for idx in range(64):
+                    # update cluster's sum abundance vector
+                    self.sum_abundance_vectors[idx] += item[idx]
             # extract ID's
-            self.reads_IDs = set([read[0] for read in reads])
-            # update average stats vector
+            self.reads_IDs = set([read[0] for read in reads]) # save ID's
+            # update average abundance vector
             self.update()
       
       
@@ -128,14 +113,14 @@ class Cluster(object):
         """
         As string.
         """
-        string = "\nAverage stats vector: "
+        string = "\nAverage abundance vector: \n"
         temp = []
-        for idx in range(10):
-            temp.append(round(self.getAvgStats()[idx], 1))
+        for idx in range(64):
+            temp.append(round(self.getAvgAbundance()[idx], 1))
         string += str(tuple(temp))
-        string += "\nReads' IDs in cluster: "
+        string += "\nReads' IDs in cluster: \n"
         string += str(self.getIDs())
-        string += "\nCluster error: " + str(round(self.clusterError(), DIM))
+        string += "\nCluster error: \n" + str(round(self.clusterError(), DIM))
         
         return string
         
@@ -154,54 +139,45 @@ class Cluster(object):
         return len(self.reads_IDs)
         
     
-    def getWeight(self):
+    def getCodonAbundance(self):
         """
-        Get weight of cluster (sum of all bases of its readings).
+        Get list of abundance vectors.
         """
-        return self.weight
+        return list(self.abundance_vectors)
         
         
-    def getStatsVectors(self):
+    def getAvgAbundance(self):
         """
-        Get list of stats vectors.
+        Get average abundance vector.
         """
-        return list(self.stats_vectors)
+        return list(self.avg_abundance_vectors)
         
         
-    def getAvgStats(self):
+    def getSumAbundance(self):
         """
-        Get average stats vector.
+        Get the sum of all abundance vectors.
         """
-        return list(self.avg_stats_vectors)
-        
-        
-    def getSumStats(self):
-        """
-        Get the sum of all stats vectors.
-        """
-        return list(self.sum_stats_vectors)
+        return list(self.sum_abundance_vectors)
         
         
     def distance(self, other_cluster, dim = DIM):
         """
         Compute Minkowski's distance between self's and other cluster's 
-        avg_stats_vectors.
+        avg_abundance_vectors.
         """
-        return distance(self.getAvgStats(), other_cluster.getAvgStats(), dim)
+        return distance(self.getAvgAbundance(), other_cluster.getAvgAbundance(), dim)
         
     
     def update(self):
         """
-        Update average stats vector and weight.
+        Update average abundance vector.
         """
-        for idx in range(10):
-            avg = float(self.sum_stats_vectors[idx]) 
+        for idx in range(64):
+            avg = float(self.sum_abundance_vectors[idx]) 
             if self.getSize() != 0:
                 avg = avg / self.getSize()
-            self.avg_stats_vectors[idx] = avg         
-        
-        self.weight = sum(self.sum_stats_vectors[:4])
-          
+            self.avg_abundance_vectors[idx] = avg         
+    
 
     def mergeClusters(self, other_cluster):
         """
@@ -213,12 +189,12 @@ class Cluster(object):
         if self.getIDs().intersection(other_cluster.getIDs()) != set([]):
             raise Warning('Some reads had the same ID in clusters to merge')
         self.reads_IDs = self.reads_IDs.union(other_cluster.getIDs())
-        # The set of stats vector of self merges with other's
-        self.stats_vectors += other_cluster.getStatsVectors()
-        # The sum_stats_vectors vectors' of both clusters are added.
-        for idx in range(10):
-            self.sum_stats_vectors[idx] += other_cluster.sum_stats_vectors[idx]
-        # The avg_stats_vectors vector and weight are updated.       
+        # The set of abundance vector of self merges with other's
+        self.abundance_vectors += other_cluster.getCodonAbundance()
+        # The sum_abundance_vectors vectors' of both clusters are added.
+        for idx in range(64):
+            self.sum_abundance_vectors[idx] += other_cluster.sum_abundance_vectors[idx]
+        # The avg_abundance_vectors vector is updated.       
         self.update()
                         
         
@@ -227,10 +203,10 @@ class Cluster(object):
         Make an exact copy of self.
         """
         copy = Cluster()
-        copy.sum_stats_vectors = self.getSumStats()
-        copy.avg_stats_vectors = self.getAvgStats()
+        copy.sum_abundance_vectors = self.getSumAbundance()
+        copy.avg_abundance_vectors = self.getAvgAbundance()
         copy.reads_IDs = self.getIDs()
-        copy.stats_vectors = list(self.getStatsVectors())
+        copy.abundance_vectors = list(self.getCodonAbundance())
         
         return copy       
         
@@ -240,27 +216,28 @@ class Cluster(object):
         Is self equal to other_cluster?
         """
         if type(other_cluster) != type(self):
-            raise Exception('Impossible comparison: different object types!')
+            raise Exception('Different object types!')
         if self.getSize() != other_cluster.getSize():
             return False
-        if self.getSumStats() != other_cluster.getSumStats():
+        if self.getSumAbundance() != other_cluster.getSumAbundance():
             return False
         if self.getIDs() != other_cluster.getIDs():
             return False
-        if self.getStatsVectors() != other_cluster.getStatsVectors():
+        if self.getCodonAbundance() != other_cluster.getCodonAbundance():
             return False
         
         return True
         
+   
     def clusterError(self, dim = DIM):
         """
-        Standard deviation of stats vectors from average stats vector.
+        Standard deviation of abundance vectors from average abundance vector.
         """
         std_dev = 0
         if self.getSize() == 0:
             return 0
-        for vector in self.getStatsVectors():
-            std_dev += distance(vector, self.getAvgStats(), dim)**2
+        for vector in self.getCodonAbundance():
+            std_dev += distance(vector, self.getAvgAbundance(), dim)**2
         
         return (float(std_dev) / self.getSize())**0.5
         

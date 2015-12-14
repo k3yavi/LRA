@@ -35,53 +35,16 @@ def readFastq(filename, limit = float('inf')):
             fh.readline().rstrip() # base quality line, ignore it
             if len(seq) == 0:
                 break
-            name += str(count)
+#            name += str(count)
             sequences.append((name, seq))
             count += 1
             
     return sequences
 
 
-def pairedFastq(filename1, filename2, limit = float('inf')):
-    """
-    Parse paired-end reads from a pair of FASTQ filehandles
-    For each pair, we return a name, the nucleotide string
-    for the first end, the quality string for the first end,
-    the nucleotide string for the second end, and the
-    quality string for the second end.
-    
-    @author: Ben Langmead
-    @adaptation: Caleb Andrade
-    """
-    reads = []
-    count = 0 # counts lines
-    
-    fh1 = open(filename1) 
-    fh2 = open(filename2)
-    
-    while count < limit:
-        first_line_1 = fh1.readline()
-        first_line_2 = fh2.readline()
-        if len(first_line_1) == 0:
-            break  # end of file
-        name_1, name_2 = first_line_1[1:].rstrip(), first_line_2[1:].rstrip()
-        seq_1, seq_2 = fh1.readline().rstrip(), fh2.readline().rstrip()
-        fh1.readline()  # ignore line starting with +
-        fh2.readline()  # ignore line starting with +
-        fh1.readline()  # ignore qualities
-        fh2.readline()  # ignore qualities
-        fh1.readline()  # ignore qualities line
-        fh2.readline()  # ignore qualities line
-        reads.append([(name_1, seq_1), (name_2, seq_2)])
-        count += 1
-    
-    return reads
-
-
 def closestPair(cluster_list):
     """
-    Compute the closest pair from a list of clusters
-    Note: Brute force method
+    Compute the closest pair from a list of clusters. Brute force method
     
     Input: List of clusters
     Output: Pair of clusters whose distance is minimal
@@ -96,17 +59,16 @@ def closestPair(cluster_list):
             if dist < minimum:
                 minimum = dist
                 best = (cluster_list[idx], cluster_list[jdx])
-    #print "Minimum distance: ", minimum
+
     return best
 
 
 def hierClustering(cluster_list, num_clusters):
     """
-    Compute a hierarchical clustering of a set of clusters.
-    Note: the function may mutate cluster_list.
+    Hierarchical clustering for a set of clusters. Mutate cluster_list.
     
     Input: List of initialized clusters, desired number of clusters.
-    Output: List of clusters whose length is num_clusters.
+    Output: List of clusters of size num_clusters.
     """
     while len(cluster_list) > num_clusters:
         # find closest pair
@@ -118,12 +80,13 @@ def hierClustering(cluster_list, num_clusters):
         # merge closest pair and append to cluster_list
         cluster1.mergeClusters(cluster2)
         cluster_list.append(cluster1)
+    
     return cluster_list
     
     
 def autoClustering(cluster_list, threshold):
     """
-    Compute a hierarchical clustering of a set of clusters.
+    Hierarchical clustering for a set of clusters.
     Note: number of clusters depend on a specified error threshold.
     
     Input: List of clusters, error threshold.
@@ -152,6 +115,7 @@ def autoClustering(cluster_list, threshold):
             cluster_list.remove(cluster2)
     if len(cluster_list) == 1:
         new_cluster_list.append(cluster_list.pop())
+    
     return new_cluster_list
     
 
@@ -161,30 +125,30 @@ def kmeansClustering(cluster_list, k, iterations, shuffle = True):
     Note: the function may not mutate cluster_list
     
     Input: List of clusters, k number of clusters, iterations, 
-    select initial clusters randomly or by size?
-    Output: List of clusters whose length is num_clusters
+    select initial clusters: randomly or by size?
+    Output: List of clusters.
     """
     kclusters = [] # this list to store k clusters to compare with (non-mutable)
     centroids = [] # this list to store the initial k centroids (average stats vectors)
+    
     if shuffle:
         # shuffle cluster list
         random.shuffle(cluster_list) 
     else:
-        # sort it by size
+        # sort by size
         cluster_list.sort(key = lambda cluster: cluster.getSize(), reverse = True)
 
     # k initial clusters to define initial centroids
     for cluster in cluster_list[:k]:
-#        print "Cluster size: ", cluster.getSize()
         kclusters.append(cluster.copy())
-        centroids.append(cluster.getAvgStats())
+        centroids.append(cluster.getAvgAbundance())
         
     for iteration in range(iterations):
         clusters = []
         # initialize new empty cluster objects at the centroids
         for idx in range(k):
             cluster = Cluster([])
-            cluster.avg_stats_vectors = list(centroids[idx])
+            cluster.avg_abundance_vectors = list(centroids[idx])
             clusters.append(cluster)
         
         # for every cluster in cluster_list
@@ -201,21 +165,19 @@ def kmeansClustering(cluster_list, k, iterations, shuffle = True):
         # make a copy of re-computed centroids: kclusters and centroids.
         for idx in range(k):
             kclusters[idx] = clusters[idx].copy()
-            centroids[idx] = (clusters[idx].getAvgStats())
+            centroids[idx] = (clusters[idx].getAvgAbundance())
     
     return kclusters
 
 
-def printResults(clusters, n):
+def avgError(clusters, n):
     """
-    Display results.
-    
-    Input: List of clusters.
+    Compute weighted average error.
     """
     mean_error = 0
     for cluster in clusters:
         temp = cluster.clusterError()
         mean_error += temp*cluster.getSize()
     
-    print "\nWeighted Average Error: ", round(mean_error / n, 2) 
+    return mean_error / n
     
