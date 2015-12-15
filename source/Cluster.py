@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on ........ Thu Nov 12 12:39:23 2015
-Last modified on .. Sun Dec 13 17:57:46 2015
 
 Cluster class and its helper functions for RNA/DNA reads clustering.
 
