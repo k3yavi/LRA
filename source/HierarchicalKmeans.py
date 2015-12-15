@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Tue Nov 17 20:26:48 2015
-Last modified on ... Mon Nov 30 23:52:44 2015
 
 Hierarchical and kmeans clustering implementation for RNA/DNA reads.
 
