@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on ......... Mon Nov 30 22:42:01 2015
-Last modified on ... Thu Dec 03 10:59:05 2015
 
-Three-step-clustering implementation.
+3LayerClustering implementation.
 
 @author: Caleb Andrade
 """
