@@ -24,7 +24,7 @@ UNARY_MAP = {'A':'1000',
 
 def unaryMap(read):
     """
-    Map read to a unary representation.
+    Map read to a binary representation.
     
     Input: read.
     Output: concatenation of unary maps of read's bases.
