@@ -17,31 +17,33 @@ def reverseComplement(seq):
     seq_dict = {'A':'T','T':'A','G':'C','C':'G', 'N':'N'}
     return ''.join([seq_dict[base] for base in reversed(seq)])
 
+
 #@profile
 def readFastq(filename, filename2, k_length):
-    #sequence will be an array of read objects
-    #the object will have the ID, the original sequence, and the reverse complement
+    # sequence will be an array of read objects
+    # the object will have the ID, the original sequence, and the reverse complement
     sequences = []
     fh = filename
     fh2 = filename2
     while True:
         read_obj = {
-            'id': None,
+            'id': '',
+            'kmer_vectors': []
         }
-        #Do all of the reading here. READ FOUR lines for each READ
-        id = fh.readline() #read the id
-        id_2= fh2.readline().rsplit()
-        seq = fh.readline().rstrip() #read base sequence
+        # Do all of the reading here. READ FOUR lines for each READ
+        id = fh.readline()  # read the id
+        id_2 = fh2.readline().rsplit()
+        seq = fh.readline().rstrip()  # read base sequence
         seq_2 = fh2.readline().rstrip()
-        fh.readline() # skip placeholder line
-        fh.readline() # base quality line
+        fh.readline()  # skip placeholder line
+        fh.readline()  # base quality line
         fh2.readline()
         fh2.readline()
-        #End of Reading here
+        # End of Reading here
 
-        if len(seq) == 0 or len(seq_2)== 0:
+        if len(seq) == 0 or len(seq_2) == 0:
             break
-        #Make the mates upper case
+        # Make the mates upper case
         seq = seq.upper()
         seq_2 = seq_2.upper()
 
@@ -49,26 +51,26 @@ def readFastq(filename, filename2, k_length):
 
         mate1 = seq + reverseComplement(seq_2)
         mate2 = reverseComplement(seq) + seq_2
-        skipRange = xrange(len(seq)-k_length+1, len(seq))
-        kmer_array = [None] * (len(mate1)-k_length+1)
+        skip_range = (len(seq)-k_length+1, len(seq))
+        kmer_vectors = []
         for index in xrange(len(mate1)-k_length+1):
             k1 = mate1[index:index+k_length]
             k2 = mate2[index:index+k_length]
 
-            if index in skipRange:
+            if skip_range[0] <= index < skip_range[1]:
                 continue
 
             if 'N' in k1 and 'N' in k2:
                 continue
             elif 'N' in k1:
-                kmer_array[index] = k2
+                kmer_vectors.append(k2)
             elif 'N' in k2:
-                kmer_array[index] = k1
+                kmer_vectors.append(k1)
             elif k1 <= k2:
-                kmer_array[index] = k1
+                kmer_vectors.append(k1)
             else:
-                kmer_array[index] = k2
-        read_obj['kmer_vectors'] = filter(lambda a: a != None, kmer_array)
+                kmer_vectors.append(k2)
+        read_obj['kmer_vectors'] = kmer_vectors
         sequences.append(read_obj)
     return sequences
 
