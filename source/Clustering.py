@@ -2,7 +2,7 @@
 """
 Created on ......... Mon Nov 30 22:42:01 2015
 
-3LayerClustering implementation.
+Three Stage Clustering implementation.
 
 @author: Caleb Andrade
 """
@@ -22,7 +22,7 @@ def main():
     # parameters
     min_bucket_size = 2
     max_bucket_size = 0.01*N # no greater than 1% of total reads
-    kmeans_loops = 5
+    kmeans_loops = 10
     num_hashes = 50 # number of primitive hashes
         
     # first stage
@@ -35,6 +35,8 @@ def main():
     clusters, error_t = secondStage(initial_clusters, k, N, kmeans_loops)
     del initial_clusters
 
+#    error_t = 20 # override automatic value for error_t   
+   
     # third stage
     new_clusters = thirdStage(clusters, N, error_t)
 
