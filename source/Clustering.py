@@ -16,12 +16,12 @@ from matplotlib import pyplot as plt
 
 def main():
     args = parse_args()
-    reads = readFastq(args.infile)
+    reads = pairedFastq(args.infile1, args.infile2)    
+    N = len(reads)
     
     # parameters
-    N = len(reads)
     min_bucket_size = 2
-    max_bucket_size = 0.01*N
+    max_bucket_size = 0.01*N # no greater than 1% of total reads
     kmeans_loops = 5
     num_hashes = 50 # number of primitive hashes
         
@@ -29,6 +29,8 @@ def main():
     initial_clusters, k = firstStage(reads, min_bucket_size, N, num_hashes, max_bucket_size)
     del reads
     
+#    k =  # override automatic value for k
+   
     # second stage
     clusters, error_t = secondStage(initial_clusters, k, N, kmeans_loops)
     del initial_clusters
@@ -43,7 +45,8 @@ def main():
 def parse_args():
         import argparse
         parser = argparse.ArgumentParser()
-        parser.add_argument('infile', help='the FASTQ read file')
+        parser.add_argument('infile1', help='the FASTQ read file')
+        parser.add_argument('infile2', help='the 2nd FASTQ read file')
         return parser.parse_args()
 
 
@@ -106,7 +109,7 @@ def firstStage(reads, min_bucket_size, n, num_hashes, max_bucket_size):
     print "Running time:           ", round(toc-tic, 2), " s"
     print "kmeans clusters (k):    ", k
     plt.plot(histogram)
-    plt.show()
+#    plt.show()
             
     return clusters, k
 

@@ -9,6 +9,7 @@ Hierarchical and kmeans clustering implementation for RNA/DNA reads.
 
 from Cluster import Cluster
 import random
+from lsh_functions import reverseComplement
 
 # DIM = 1 manhattan metric; DIM = 2 euclidean metric
 DIM = 1
@@ -39,6 +40,42 @@ def readFastq(filename, limit = float('inf')):
             count += 1
             
     return sequences
+
+
+def pairedFastq(filename1, filename2, limit = float('inf')):
+    """
+    Parse paired-end reads from a pair of FASTQ filehandles.
+    """
+    reads = []
+    count = 0 # count lines
+    
+    fh1 = open(filename1) 
+    fh2 = open(filename2)
+    
+    while count < limit:
+        first_line_1 = fh1.readline() # name line
+        first_line_2 = fh2.readline() # name line
+        if len(first_line_1) == 0:
+            break  # end of file
+        name_1 = first_line_1[1:].rstrip()
+        name_2 = first_line_2[1:].rstrip()
+        seq_1 = fh1.readline().rstrip() # read base line seq 1
+        seq_2 = fh2.readline().rstrip() # read base line seq 2
+        fh1.readline()  # skip placeholder line
+        fh2.readline()  # skip placeholder line
+        fh1.readline()  # ignore base qualities line
+        fh2.readline()  # ignore base qualities line
+        
+        # Make the mates upper case
+        seq_1, seq_2 = seq_1.upper(), seq_2.upper()
+        
+        # Reverse complement paired end
+        mate = seq_1 + 'N' + reverseComplement(seq_2)
+
+        reads.append((name_1, mate))
+        count += 1
+    
+    return reads
 
 
 def closestPair(cluster_list):
