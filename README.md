@@ -20,6 +20,7 @@ The source/ directory contains all of the code.
     lsh_functions.py
 
 Example of running LSH:
+
     ./lsh.py -s 10 -k 21 r1.fastq r2.fastq
 
 This runs with k-mer lengths of 21 and a hash size on 10.
@@ -32,4 +33,5 @@ This runs with k-mer lengths of 21 and a hash size on 10.
     Cluster.py
 
 Example of running TSC:
+
     ./ThreeStageClustering.py r1.fastq r2.fastq
