@@ -1,8 +1,9 @@
-__author__ = 'soumadipmukherjee'
 #!/usr/bin/env python
 from collections import namedtuple
+
 Defaults = namedtuple('Defaults', ['count'])
 defaults = Defaults(count=1)
+
 
 def main():
     args = parse_args()
@@ -10,12 +11,13 @@ def main():
     one_c, t_c = countClusters(args.file1, args.count)
     print "Clusters with less then "+str(args.count+ 1)+" reads: " + str(one_c)
     print "Total clusters: " + str(t_c)
-    return
+
+
 def countClusters(clusters, count_min ):
     print clusters
     count = 0
     runcount = 0
-    cluster_with_one = 0;
+    cluster_with_one = 0
     while True:
         r = clusters.readline()
         if r == '\n':
@@ -39,5 +41,7 @@ def parse_args():
                        type=argparse.FileType('r'),
                        help="Cluster file")
     return parser.parse_args()
+
+
 if __name__ =="__main__":
     main()

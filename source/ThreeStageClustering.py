@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on ......... Mon Nov 30 22:42:01 2015
@@ -29,14 +30,14 @@ def main():
     initial_clusters, k = firstStage(reads, min_bucket_size, N, num_hashes, max_bucket_size)
     del reads
     
-#    k =  # override automatic value for k
+    # k =  # override automatic value for k
    
     # second stage
     clusters, error_t = secondStage(initial_clusters, k, N, kmeans_loops)
     del initial_clusters
 
-#    error_t = 20 # override automatic value for error_t   
-   
+    # error_t = 20 # override automatic value for error_t
+
     # third stage
     new_clusters = thirdStage(clusters, N, error_t)
 
@@ -89,9 +90,9 @@ def firstStage(reads, min_bucket_size, n, num_hashes, max_bucket_size):
             # discard cluster sizes for histogram that are too big
             if len(bucket) < max_bucket_size:
                 histogram.append(len(bucket))
-#                print
-#                for cluster in bucket:
-#                    print cluster
+               # print
+               # for cluster in bucket:
+               #     print cluster
     
     toc = time.clock()
     avg_error = avgError(clusters, n)       
@@ -111,7 +112,7 @@ def firstStage(reads, min_bucket_size, n, num_hashes, max_bucket_size):
     print "Running time:           ", round(toc-tic, 2), " s"
     print "kmeans clusters (k):    ", k
     plt.plot(histogram)
-#    plt.show()
+    # plt.show()
             
     return clusters, k
 

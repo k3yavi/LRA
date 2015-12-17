@@ -35,7 +35,6 @@ def readFastq(filename, limit = float('inf')):
             fh.readline().rstrip() # base quality line, ignore it
             if len(seq) == 0:
                 break
-#            name += str(count)
             sequences.append((name, seq))
             count += 1
             
@@ -216,4 +215,3 @@ def avgError(clusters, n):
         mean_error += temp*cluster.getSize()
     
     return mean_error / n
-    

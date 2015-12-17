@@ -235,4 +235,3 @@ class Cluster(object):
             std_dev += distance(vector, self.getAvgAbundance(), dim)**2
         
         return (float(std_dev) / self.getSize())**0.5
-        

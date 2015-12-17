@@ -107,4 +107,3 @@ def consensus(bucket):
             count = 0
             
     return average
-    
